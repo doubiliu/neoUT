@@ -478,6 +478,29 @@ namespace Neo.UnitTests.SmartContract.Native.Tokens
             ret.Result.Should().BeTrue();
         }
 
+        [TestMethod]
+        public void TestValidatorsCountState_FromByteArray()
+        {
+            ValidatorsCountState input = new ValidatorsCountState { Votes = new BigInteger[] { new BigInteger(1000) } };
+            ValidatorsCountState output = ValidatorsCountState.FromByteArray(input.ToByteArray());
+            output.ShouldBeEquivalentTo(input);
+        }
+
+        [TestMethod]
+        public void TestValidatorState_FromByteArray()
+        {
+            ValidatorState input = new ValidatorState { Votes = new BigInteger(1000) };
+            ValidatorState output = ValidatorState.FromByteArray(input.ToByteArray());
+            output.ShouldBeEquivalentTo(input);
+        }
+
+        [TestMethod]
+        public void TestValidatorState_ToByteArray()
+        {
+            ValidatorState input = new ValidatorState { Votes = new BigInteger(1000) };
+            input.ToByteArray().ToHexString().Should().Be("e803");
+        }
+
         internal static (bool State, bool Result) Check_Vote(Snapshot snapshot, byte[] account, byte[][] pubkeys, bool signAccount)
         {
             var engine = new ApplicationEngine(TriggerType.Application,
