@@ -7,7 +7,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Neo.UnitTests.IO
+namespace Neo.UnitTests.SmartContract
 {
     [TestClass]
     public class UT_Contract

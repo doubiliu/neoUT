@@ -293,6 +293,7 @@ namespace Neo.UnitTests.SmartContract
             ApplicationEngine.Log += LogEvent;
             InteropService.Invoke(engine, InteropService.System_Runtime_Log).Should().BeTrue();
             ((Transaction)engine.ScriptContainer).Script.ToHexString().Should().Be(new byte[] { 0x01, 0x02, 0x03 }.ToHexString());
+            ApplicationEngine.Log -= LogEvent;
         }
 
         [TestMethod]

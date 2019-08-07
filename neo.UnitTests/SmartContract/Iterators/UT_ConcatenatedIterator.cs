@@ -6,7 +6,6 @@ using System.Numerics;
 
 namespace Neo.UnitTests.SmartContract.Iterators
 {
-
     [TestClass]
     public class UT_ConcatenatedIterator
     {

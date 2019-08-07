@@ -3,9 +3,8 @@ using Neo.Network.P2P.Payloads;
 using Neo.SmartContract;
 using System;
 
-namespace Neo.UnitTests.SmartContract.Iterators
+namespace Neo.UnitTests.SmartContract
 {
-
     [TestClass]
     public class UT_LogEventArgs
     {

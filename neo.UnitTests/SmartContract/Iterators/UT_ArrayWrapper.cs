@@ -8,7 +8,6 @@ using System.Collections.Generic;
 
 namespace Neo.UnitTests.SmartContract.Iterators
 {
-
     [TestClass]
     public class UT_ArrayWrapper
     {

@@ -6,7 +6,7 @@ using Neo.VM;
 using System;
 using System.Collections.Generic;
 
-namespace Neo.UnitTests.SmartContract.Iterators
+namespace Neo.UnitTests.SmartContract.Enumerators
 {
 
     [TestClass]
