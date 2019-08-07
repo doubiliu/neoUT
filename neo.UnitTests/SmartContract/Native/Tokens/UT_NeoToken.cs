@@ -432,6 +432,18 @@ namespace Neo.UnitTests.SmartContract.Native.Tokens
         [TestMethod]
         public void TestOnBalanceChanging()
         {
+            var ret = Transfer4TesingOnBalanceChanging(new BigInteger(0), false);
+            ret.Result.Should().BeTrue();
+            ret.State.Should().BeTrue();
+
+            ret = Transfer4TesingOnBalanceChanging(new BigInteger(1), false);
+            ret.Result.Should().BeTrue();
+            ret.State.Should().BeTrue();
+
+            //Waiting for commit 4a17c2c
+            /*ret = Transfer4TesingOnBalanceChanging(new BigInteger(1), true);
+            ret.Result.Should().BeTrue();
+            ret.State.Should().BeTrue();*/
         }
 
         [TestMethod]
@@ -463,19 +475,40 @@ namespace Neo.UnitTests.SmartContract.Native.Tokens
         {
             Snapshot snapshot = Store.GetSnapshot().Clone();
             UInt160 account = UInt160.Parse("01ff00ff00ff00ff00ff00ff00ff00ff00ff00a4");
+            StorageKey keyAccount = CreateStorageKey(20, account.ToArray());
+            StorageKey keyValidator = CreateStorageKey(33, ECCurve.Secp256r1.G.ToArray());
             var ret = Check_Vote(snapshot, account.ToArray(), new byte[][] { ECCurve.Secp256r1.G.ToArray() }, false);
             ret.State.Should().BeTrue();
             ret.Result.Should().BeFalse();
+
             ret = Check_Vote(snapshot, account.ToArray(), new byte[][] { ECCurve.Secp256r1.G.ToArray() }, true);
             ret.State.Should().BeTrue();
             ret.Result.Should().BeFalse();
-            snapshot.Storages.Add(CreateStorageKey(20, account.ToArray()), new StorageItem
+
+            snapshot.Storages.Add(keyAccount, new StorageItem
             {
                 Value = new AccountState().ToByteArray()
             });
             ret = Check_Vote(snapshot, account.ToArray(), new byte[][] { ECCurve.Secp256r1.G.ToArray() }, true);
             ret.State.Should().BeTrue();
             ret.Result.Should().BeTrue();
+
+            //Waiting for commit 4a17c2c
+            /*snapshot.Storages.Delete(keyAccount);
+            snapshot.Storages.GetAndChange(keyAccount, () => new StorageItem
+            {
+                Value = new AccountState()
+                {
+                    Votes = new ECPoint[] { ECCurve.Secp256r1.G }
+                }.ToByteArray()
+            });
+            snapshot.Storages.Add(keyValidator, new StorageItem
+            {
+                Value = new ValidatorState().ToByteArray()
+            });
+            ret = Check_Vote(snapshot, account.ToArray(), new byte[][] { ECCurve.Secp256r1.G.ToArray() }, true);
+            ret.State.Should().BeTrue();
+            ret.Result.Should().BeTrue();*/
         }
 
         [TestMethod]
@@ -499,6 +532,57 @@ namespace Neo.UnitTests.SmartContract.Native.Tokens
         {
             ValidatorState input = new ValidatorState { Votes = new BigInteger(1000) };
             input.ToByteArray().ToHexString().Should().Be("e803");
+        }
+
+        internal (bool State, bool Result) Transfer4TesingOnBalanceChanging(BigInteger amount, bool addVotes)
+        {
+            Snapshot snapshot = Store.GetSnapshot().Clone();
+            var engine = new ApplicationEngine(TriggerType.Application, Blockchain.GenesisBlock, snapshot, 0, true);
+            ScriptBuilder sb = new ScriptBuilder();
+            var tmp = engine.ScriptContainer.GetScriptHashesForVerifying(engine.Snapshot);
+            UInt160 from = engine.ScriptContainer.GetScriptHashesForVerifying(engine.Snapshot)[0];
+            if (addVotes)
+            {
+                snapshot.Storages.Add(CreateStorageKey(20, from.ToArray()), new StorageItem
+                {
+                    Value = new AccountState()
+                    {
+                        Votes = new ECPoint[] { ECCurve.Secp256r1.G },
+                        Balance = new BigInteger(1000)
+                    }.ToByteArray()
+                });
+                snapshot.Storages.Add(NativeContract.NEO.CreateStorageKey(33, ECCurve.Secp256r1.G), new StorageItem
+                {
+                    Value = new ValidatorState().ToByteArray()
+                });
+
+                ValidatorsCountState state = new ValidatorsCountState();
+                for (int i = 0; i < 100; i++)
+                {
+                    state.Votes[i] = new BigInteger(i + 1);
+                }
+                snapshot.Storages.Add(CreateStorageKey(15), new StorageItem()
+                {
+                    Value = state.ToByteArray()
+                });
+            }
+            else
+            {
+                snapshot.Storages.Add(CreateStorageKey(20, from.ToArray()), new StorageItem
+                {
+                    Value = new AccountState()
+                    {
+                        Balance = new BigInteger(1000)
+                    }.ToByteArray()
+                });
+            }
+
+            sb.EmitAppCall(NativeContract.NEO.Hash, "transfer", from, UInt160.Zero, amount);
+            engine.LoadScript(sb.ToArray());
+            engine.Execute();
+            var result = engine.ResultStack.Peek();
+            result.GetType().Should().Be(typeof(VM.Types.Boolean));
+            return (true, (result as VM.Types.Boolean).GetBoolean());
         }
 
         internal static (bool State, bool Result) Check_Vote(Snapshot snapshot, byte[] account, byte[][] pubkeys, bool signAccount)
