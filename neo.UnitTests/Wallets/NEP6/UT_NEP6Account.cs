@@ -23,7 +23,7 @@ namespace Neo.UnitTests.Wallets.NEP6
             hash = new UInt160(Crypto.Default.Hash160(array1));
             account = new NEP6Account(wallet, hash);
         }
-        
+
         [TestMethod]
         public void TestConstructorWithNep2Key()
         {
@@ -83,11 +83,11 @@ namespace Neo.UnitTests.Wallets.NEP6
             wallet.Unlock("Satoshi");
             string nep2 = "6PYRjVE1gAbCRyv81FTiFz62cxuPGw91vMjN4yPa68bnoqJtioreTznezn";
             account = new NEP6Account(wallet, hash, nep2);
-            
+
             byte[] privateKey = { 0x01,0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
                 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
             KeyPair keyPair = new KeyPair(privateKey);
-            account.GetKey().Should().Be(keyPair);            
+            account.GetKey().Should().Be(keyPair);
         }
 
         [TestMethod]
@@ -108,7 +108,7 @@ namespace Neo.UnitTests.Wallets.NEP6
         public void TestToJson()
         {
             JObject nep6contract = new JObject();
-            nep6contract["script"] = "2103603f3880eb7aea0ad4500893925e4a42fea48a44ee6f898a10b3c7ce05d2a267ac";            
+            nep6contract["script"] = "2103603f3880eb7aea0ad4500893925e4a42fea48a44ee6f898a10b3c7ce05d2a267ac";
             JObject parameters = new JObject();
             parameters["type"] = 0x00;
             parameters["name"] = "Sig";

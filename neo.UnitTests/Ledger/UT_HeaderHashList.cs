@@ -9,20 +9,15 @@ namespace Neo.UnitTests.Ledger
     [TestClass]
     public class UT_HeaderHashList
     {
-        HeaderHashList origin = null;
+        HeaderHashList origin;
 
         [TestInitialize]
         public void Initialize()
         {
-            origin = new HeaderHashList();
-            origin.Hashes = new UInt256[] { UInt256.Zero };
-        }
-
-        [TestMethod]
-        public void TestConstructor()
-        {
-            HeaderHashList list = new HeaderHashList();
-            list.Should().NotBeNull();
+            origin = new HeaderHashList
+            {
+                Hashes = new UInt256[] { UInt256.Zero }
+            };
         }
 
         [TestMethod]

@@ -4,9 +4,8 @@ using Neo.SmartContract;
 using Neo.VM.Types;
 using System;
 
-namespace Neo.UnitTests.SmartContract.Iterators
+namespace Neo.UnitTests.SmartContract
 {
-
     [TestClass]
     public class UT_ContainerPlaceholder
     {

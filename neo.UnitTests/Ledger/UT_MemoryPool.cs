@@ -7,6 +7,7 @@ using Neo.IO.Caching;
 using Neo.Ledger;
 using Neo.Network.P2P.Payloads;
 using Neo.Persistence;
+using Neo.Plugins;
 using Neo.SmartContract;
 using Neo.VM;
 using System;
@@ -16,12 +17,29 @@ using System.Linq;
 
 namespace Neo.UnitTests.Ledger
 {
+    internal class TestIMemoryPoolTxObserverPlugin : Plugin, IMemoryPoolTxObserverPlugin
+    {
+        public override void Configure()
+        {
+        }
+
+        public void TransactionAdded(Transaction tx)
+        {
+        }
+
+        public void TransactionsRemoved(MemoryPoolTxRemovalReason reason, IEnumerable<Transaction> transactions)
+        {
+        }
+    }
+
     [TestClass]
     public class UT_MemoryPool
     {
         private const byte Prefix_MaxTransactionsPerBlock = 23;
         private const byte Prefix_FeePerByte = 10;
         private MemoryPool _unit;
+        private MemoryPool _unit2;
+        private TestIMemoryPoolTxObserverPlugin plugin;
 
         [TestInitialize]
         public void TestSetup()
@@ -41,6 +59,14 @@ namespace Neo.UnitTests.Ledger
             _unit.VerifiedCount.ShouldBeEquivalentTo(0);
             _unit.UnVerifiedCount.ShouldBeEquivalentTo(0);
             _unit.Count.ShouldBeEquivalentTo(0);
+            _unit2 = new MemoryPool(TheNeoSystem, 0);
+            plugin = new TestIMemoryPoolTxObserverPlugin();
+        }
+
+        [TestCleanup]
+        public void CleanUp()
+        {
+            Plugin.TxObserverPlugins.Remove(plugin);
         }
 
         long LongRandom(long min, long max, Random rand)
@@ -319,10 +345,7 @@ namespace Neo.UnitTests.Ledger
         public void TestReVerifyTopUnverifiedTransactionsIfNeeded()
         {
             NeoSystem TheNeoSystem = TestBlockchain.InitializeMockNeoSystem();
-            
             var s = Blockchain.Singleton.Height;
-            Console.WriteLine(s);
-
             _unit = new MemoryPool(TheNeoSystem, 600);
             _unit.LoadPolicy(TestBlockchain.GetStore().GetSnapshot());
             AddTransactions(2);
@@ -340,6 +363,7 @@ namespace Neo.UnitTests.Ledger
             var tx1 = CreateTransaction();
             _unit.TryAdd(tx1.Hash, tx1);
             _unit.TryAdd(tx1.Hash, tx1).Should().BeFalse();
+            _unit2.TryAdd(tx1.Hash, tx1).Should().BeFalse();
         }
 
         [TestMethod]

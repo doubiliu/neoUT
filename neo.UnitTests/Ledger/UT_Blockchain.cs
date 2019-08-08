@@ -49,8 +49,8 @@ namespace Neo.UnitTests.Ledger
     [TestClass]
     public class UT_Blockchain
     {
-        private NeoSystem system = null;
-        private Store store = null;
+        private NeoSystem system;
+        private Store store;
         Transaction txSample = Blockchain.GenesisBlock.Transactions[0];
 
         [TestInitialize]
@@ -110,54 +110,6 @@ namespace Neo.UnitTests.Ledger
         {
             Blockchain.Singleton.GetTransaction(UInt256.Zero).Should().NotBeNull();
             Blockchain.Singleton.GetTransaction(txSample.Hash).Should().NotBeNull();
-        }
-
-        [TestMethod]
-        public void TestFillCompletedConstructor()
-        {
-            new Blockchain.FillCompleted().Should().NotBeNull();
-        }
-
-        [TestMethod]
-        public void TestFillMemoryPoolConstructor()
-        {
-            Transaction[] transactions = new Transaction[] { };
-            var pool = new Blockchain.FillMemoryPool()
-            {
-                Transactions = transactions
-            };
-            pool.Should().NotBeNull();
-            pool.Transactions.Should().BeEquivalentTo(transactions);
-        }
-
-        [TestMethod]
-        public void TestImportConstructor()
-        {
-            Block[] blocks = new Block[] { };
-            var import = new Blockchain.Import()
-            {
-                Blocks = blocks
-            };
-            import.Should().NotBeNull();
-            import.Blocks.Should().BeEquivalentTo(blocks);
-        }
-
-        [TestMethod]
-        public void TestImportCompletedConstructor()
-        {
-            new Blockchain.ImportCompleted().Should().NotBeNull();
-        }
-
-        [TestMethod]
-        public void TestPersistCompletedConstructor()
-        {
-            Block block = Blockchain.GenesisBlock;
-            var pool = new Blockchain.PersistCompleted()
-            {
-                Block = block
-            };
-            pool.Should().NotBeNull();
-            pool.Block.Should().Be(block);
         }
     }
 }

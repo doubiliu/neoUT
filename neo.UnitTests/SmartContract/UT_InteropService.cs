@@ -19,7 +19,7 @@ using System.Text;
 namespace Neo.UnitTests.SmartContract
 {
     [TestClass]
-    public class UT_InteropService
+    public partial class UT_InteropService
     {
         [TestInitialize]
         public void TestSetup()
@@ -293,6 +293,7 @@ namespace Neo.UnitTests.SmartContract
             ApplicationEngine.Log += LogEvent;
             InteropService.Invoke(engine, InteropService.System_Runtime_Log).Should().BeTrue();
             ((Transaction)engine.ScriptContainer).Script.ToHexString().Should().Be(new byte[] { 0x01, 0x02, 0x03 }.ToHexString());
+            ApplicationEngine.Log -= LogEvent;
         }
 
         [TestMethod]
@@ -954,7 +955,7 @@ namespace Neo.UnitTests.SmartContract
         private static ApplicationEngine GetEngine(bool hasContainer = false, bool hasSnapshot = false)
         {
             var tx = TestUtils.GetTransaction();
-            var snapshot = TestBlockchain.GetStore().GetSnapshot();
+            var snapshot = TestBlockchain.GetStore().GetSnapshot().Clone();
             ApplicationEngine engine;
             if (hasContainer && hasSnapshot)
             {

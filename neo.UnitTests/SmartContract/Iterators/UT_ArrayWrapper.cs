@@ -5,11 +5,9 @@ using Neo.VM;
 using Neo.VM.Types;
 using System;
 using System.Collections.Generic;
-using System.Numerics;
 
 namespace Neo.UnitTests.SmartContract.Iterators
 {
-
     [TestClass]
     public class UT_ArrayWrapper
     {
@@ -18,14 +16,14 @@ namespace Neo.UnitTests.SmartContract.Iterators
         {
             ArrayWrapper arrayWrapper = new ArrayWrapper(new List<StackItem>());
             Assert.IsNotNull(arrayWrapper);
-            Action action=()=>arrayWrapper.Dispose();
+            Action action = () => arrayWrapper.Dispose();
             action.ShouldNotThrow<Exception>();
         }
 
         [TestMethod]
         public void TestKeyAndValue()
         {
-            List<StackItem> list=new List<StackItem>();
+            List<StackItem> list = new List<StackItem>();
             StackItem stackItem = new Integer(0);
             list.Add(stackItem);
             ArrayWrapper arrayWrapper = new ArrayWrapper(list);

@@ -9,22 +9,17 @@ namespace Neo.UnitTests.Ledger
     [TestClass]
     public class UT_TransactionState
     {
-        TransactionState origin = null;
+        TransactionState origin;
 
         [TestInitialize]
         public void Initialize()
         {
-            origin = new TransactionState();
-            origin.BlockIndex = 1;
-            origin.VMState = VM.VMState.NONE;
-            origin.Transaction = Blockchain.GenesisBlock.Transactions[0];
-        }
-
-        [TestMethod]
-        public void TestConstructor()
-        {
-            TransactionState state = new TransactionState();
-            state.Should().NotBeNull();
+            origin = new TransactionState
+            {
+                BlockIndex = 1,
+                VMState = VM.VMState.NONE,
+                Transaction = Blockchain.GenesisBlock.Transactions[0]
+            };
         }
 
         [TestMethod]

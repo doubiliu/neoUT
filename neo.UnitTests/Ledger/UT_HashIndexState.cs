@@ -9,21 +9,16 @@ namespace Neo.UnitTests.Ledger
     [TestClass]
     public class UT_HashIndexState
     {
-        HashIndexState origin = null;
+        HashIndexState origin;
 
         [TestInitialize]
         public void Initialize()
         {
-            origin = new HashIndexState();
-            origin.Hash = UInt256.Zero;
-            origin.Index = 10;
-        }
-
-        [TestMethod]
-        public void TestConstructor()
-        {
-            HashIndexState state = new HashIndexState();
-            state.Should().NotBeNull();
+            origin = new HashIndexState
+            {
+                Hash = UInt256.Zero,
+                Index = 10
+            };
         }
 
         [TestMethod]

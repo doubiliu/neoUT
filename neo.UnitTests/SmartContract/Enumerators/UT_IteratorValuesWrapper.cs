@@ -3,12 +3,10 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Neo.SmartContract.Enumerators;
 using Neo.SmartContract.Iterators;
 using Neo.VM;
-using Neo.VM.Types;
 using System;
 using System.Collections.Generic;
-using System.Numerics;
 
-namespace Neo.UnitTests.SmartContract.Iterators
+namespace Neo.UnitTests.SmartContract.Enumerators
 {
 
     [TestClass]
@@ -19,7 +17,7 @@ namespace Neo.UnitTests.SmartContract.Iterators
         {
             IteratorValuesWrapper iteratorValuesWrapper = new IteratorValuesWrapper(new ArrayWrapper(new List<StackItem>()));
             Assert.IsNotNull(iteratorValuesWrapper);
-            Action action=()=> iteratorValuesWrapper.Dispose();
+            Action action = () => iteratorValuesWrapper.Dispose();
             action.ShouldNotThrow<Exception>();
         }
 
@@ -31,7 +29,7 @@ namespace Neo.UnitTests.SmartContract.Iterators
             list.Add(stackItem);
             ArrayWrapper wrapper = new ArrayWrapper(list);
             IteratorValuesWrapper iteratorValuesWrapper = new IteratorValuesWrapper(wrapper);
-            Action action=()=>iteratorValuesWrapper.Next();
+            Action action = () => iteratorValuesWrapper.Next();
             action.ShouldNotThrow<Exception>();
             Assert.AreEqual(stackItem, iteratorValuesWrapper.Value());
         }

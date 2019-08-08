@@ -25,7 +25,7 @@ namespace Neo.UnitTests.SmartContract.Manifest
             JObject alice = new JObject();
             alice["name"] = "alice";
             alice["age"] = 30;
-            JArray jarray = new JArray{ alice };
+            JArray jarray = new JArray { alice };
             WildCardContainer<string> r = WildCardContainer<string>.FromJson(jarray, u => u.AsString());
             r[0].Should().Be("{\"name\":\"alice\",\"age\":30}");
 
@@ -59,7 +59,7 @@ namespace Neo.UnitTests.SmartContract.Manifest
         public void TestGetEnumerator()
         {
             string[] s = null;
-            IReadOnlyList<string> rs = (IReadOnlyList<string>) new string[0];
+            IReadOnlyList<string> rs = (IReadOnlyList<string>)new string[0];
             WildCardContainer<string> container = WildCardContainer<string>.Create(s);
             IEnumerator<string> enumerator = container.GetEnumerator();
             enumerator.Should().Be(rs.GetEnumerator());
@@ -67,7 +67,7 @@ namespace Neo.UnitTests.SmartContract.Manifest
             s = new string[] { "hello", "world" };
             container = WildCardContainer<string>.Create(s);
             enumerator = container.GetEnumerator();
-            foreach(string _ in s)
+            foreach (string _ in s)
             {
                 enumerator.MoveNext();
                 enumerator.Current.Should().Be(_);

@@ -77,7 +77,7 @@ namespace Neo.UnitTests.Ledger
                 newContract.Deserialize(reader);
             }
             ((ContractState)newContract).Manifest.ToJson().ToString().Should().Be(contract.Manifest.ToJson().ToString());
-            ((ContractState)newContract).Script.Should().BeEquivalentTo(contract.Script);     
+            ((ContractState)newContract).Script.Should().BeEquivalentTo(contract.Script);
         }
 
         [TestMethod]

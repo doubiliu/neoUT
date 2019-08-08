@@ -3,14 +3,12 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Neo.Cryptography.ECC;
 using Neo.IO.Json;
 using Neo.SmartContract;
-using Neo.VM;
-using Neo.Wallets;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
 
-namespace Neo.UnitTests.IO
+namespace Neo.UnitTests.SmartContract
 {
     [TestClass]
     public class UT_ContractParameter
@@ -105,8 +103,8 @@ namespace Neo.UnitTests.IO
                 if (i == 0)
                 {
                     ContractParameter contractParameter = new ContractParameter(ContractParameterType.Signature);
-                    JObject jobject=contractParameter.ToJson();
-                    Assert.AreEqual(jobject.ToString(),ContractParameter.FromJson(jobject).ToJson().ToString());
+                    JObject jobject = contractParameter.ToJson();
+                    Assert.AreEqual(jobject.ToString(), ContractParameter.FromJson(jobject).ToJson().ToString());
                 }
                 else if (i == 1)
                 {
@@ -249,7 +247,7 @@ namespace Neo.UnitTests.IO
         [TestMethod]
         public void TestToString()
         {
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < 5; i++)
             {
                 if (i == 0)
                 {
@@ -262,15 +260,15 @@ namespace Neo.UnitTests.IO
                     contractParameter.Value = new byte[1];
                     Assert.AreEqual("00", contractParameter.ToString());
                 }
-                else if (i == 3)
-                { 
+                else if (i == 2)
+                {
                     ContractParameter contractParameter = new ContractParameter(ContractParameterType.Array);
                     Assert.AreEqual("[]", contractParameter.ToString());
                     ContractParameter internalContractParameter = new ContractParameter(ContractParameterType.Boolean);
                     ((IList<ContractParameter>)contractParameter.Value).Add(internalContractParameter);
                     Assert.AreEqual("[False]", contractParameter.ToString());
                 }
-                else if (i == 4)
+                else if (i == 3)
                 {
                     ContractParameter contractParameter = new ContractParameter(ContractParameterType.Map);
                     Assert.AreEqual("[]", contractParameter.ToString());

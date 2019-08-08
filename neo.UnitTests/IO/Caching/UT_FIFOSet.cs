@@ -82,9 +82,11 @@ namespace Neo.UnitTests.IO.Caching
                 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
                 0x01, 0x02
             });
-            var set = new FIFOSet<UInt256>(1, 1);
-            set.Add(a);
-            set.Add(b);
+            var set = new FIFOSet<UInt256>(1, 1)
+            {
+                a,
+                b
+            };
             CollectionAssert.AreEqual(set.ToArray(), new UInt256[] { b });
         }
 
