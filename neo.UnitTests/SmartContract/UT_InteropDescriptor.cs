@@ -12,14 +12,14 @@ namespace Neo.UnitTests.SmartContract
         public void TestGetMethod()
         {
             string method = @"System.ExecutionEngine.GetScriptContainer";
-            Func<ApplicationEngine, bool> handler = testEngine;
+            Func<ApplicationEngine, bool> handler = TestEngine;
             long price = 0_00000250;
             TriggerType allowedTriggers = TriggerType.All;
-            InteropDescriptor descriptor = new InteropDescriptor(method, testEngine, price, allowedTriggers);
+            InteropDescriptor descriptor = new InteropDescriptor(method, TestEngine, price, allowedTriggers);
             descriptor.Method.Should().Be(method);
         }
 
-        private bool testEngine(ApplicationEngine engine)
+        private bool TestEngine(ApplicationEngine engine)
         {
             return true;
         }

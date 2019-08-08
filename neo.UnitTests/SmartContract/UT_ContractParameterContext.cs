@@ -15,7 +15,8 @@ namespace Neo.UnitTests.SmartContract
         private static KeyPair key;
 
         [ClassInitialize]
-        public static void ClassSetUp(TestContext context) {
+        public static void ClassSetUp(TestContext context)
+        {
             if (contract == null)
             {
                 byte[] privateKey = new byte[] { 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
@@ -99,7 +100,7 @@ namespace Neo.UnitTests.SmartContract
             context.Add(contract, 0, new byte[] { 0x01 });
             Witness[] witnesses = context.GetWitnesses();
             witnesses.Length.Should().Be(1);
-            witnesses[0].InvocationScript.ToHexString().Should().Be(new byte[] { 0x01,0x01}.ToHexString());
+            witnesses[0].InvocationScript.ToHexString().Should().Be(new byte[] { 0x01, 0x01 }.ToHexString());
             witnesses[0].VerificationScript.ToHexString().Should().Be(contract.Script.ToHexString());
         }
 
@@ -109,11 +110,11 @@ namespace Neo.UnitTests.SmartContract
             Transaction tx = TestUtils.GetTransaction();
             var singleSender = UInt160.Parse("0xbecaad15c0ea585211faf99738a4354014f177f2");
             tx.Sender = singleSender;
-            
+
             //singleSign
 
             var context = new ContractParametersContext(tx);
-            context.AddSignature(contract,key.PublicKey,new byte[] { 0x01}).Should().BeTrue();
+            context.AddSignature(contract, key.PublicKey, new byte[] { 0x01 }).Should().BeTrue();
 
             var contract1 = Contract.CreateSignatureContract(key.PublicKey);
             contract1.ParameterList = new ContractParameterType[0];
@@ -140,8 +141,8 @@ namespace Neo.UnitTests.SmartContract
             var multiSender = UInt160.Parse("0xa4712ed1a8d813561b28ec828930d85e6e08ec7a");
             tx.Sender = multiSender;
             context = new ContractParametersContext(tx);
-            context.AddSignature(multiSignContract,key.PublicKey, new byte[] { 0x01 }).Should().BeTrue();
-            context.AddSignature(multiSignContract,key2.PublicKey, new byte[] { 0x01 }).Should().BeTrue();
+            context.AddSignature(multiSignContract, key.PublicKey, new byte[] { 0x01 }).Should().BeTrue();
+            context.AddSignature(multiSignContract, key2.PublicKey, new byte[] { 0x01 }).Should().BeTrue();
 
             tx.Sender = singleSender;
             context = new ContractParametersContext(tx);

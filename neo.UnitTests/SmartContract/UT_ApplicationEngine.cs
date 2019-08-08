@@ -155,6 +155,7 @@ namespace Neo.UnitTests.SmartContract
         public TestApplicationEngine(TriggerType trigger, IVerifiable container, Snapshot snapshot, long gas, bool testMode = false) : base(trigger, container, snapshot, gas, testMode)
         {
         }
+
         public bool GetOnSysCall(uint method)
         {
             return OnSysCall(method);
@@ -170,7 +171,6 @@ namespace Neo.UnitTests.SmartContract
 
         protected override void AddInternal(T item)
         {
-
         }
 
         protected override T TryGetInternal()

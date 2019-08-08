@@ -518,7 +518,7 @@ namespace Neo.UnitTests.SmartContract
             engine.CurrentContext.EvaluationStack.Push(new InteropInterface<ArrayWrapper>(wrapper));
             InteropService.Invoke(engine, InteropService.Neo_Iterator_Key).Should().BeTrue();
             engine.CurrentContext.EvaluationStack.Pop().GetBigInteger().Should().Be(0);
-            
+
             engine.CurrentContext.EvaluationStack.Push(1);
             InteropService.Invoke(engine, InteropService.Neo_Iterator_Key).Should().BeFalse();
         }
@@ -607,7 +607,7 @@ namespace Neo.UnitTests.SmartContract
         public void TestWitness_GetVerificationScript()
         {
             var engine = GetEngine();
-           var witnessWrapper = new WitnessWrapper
+            var witnessWrapper = new WitnessWrapper
             {
                 VerificationScript = new byte[] { 0x01 }
             };

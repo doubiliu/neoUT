@@ -1,7 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Neo.Network.P2P.Payloads;
 using Neo.SmartContract;
-using System;
 
 namespace Neo.UnitTests.SmartContract
 {
@@ -13,7 +12,7 @@ namespace Neo.UnitTests.SmartContract
         {
             IVerifiable container = new Header();
             UInt160 scripthash = UInt160.Zero;
-            String message = "lalala";
+            string message = "lalala";
             LogEventArgs logEventArgs = new LogEventArgs(container, scripthash, message);
             Assert.IsNotNull(logEventArgs);
             Assert.AreEqual(container, logEventArgs.ScriptContainer);

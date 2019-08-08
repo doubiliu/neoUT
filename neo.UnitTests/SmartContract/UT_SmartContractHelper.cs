@@ -31,9 +31,7 @@ namespace Neo.UnitTests.SmartContract
                         publicKeys[i] = key.PublicKey;
                     }
                     byte[] script = Contract.CreateMultiSigRedeemScript(20, publicKeys);
-                    int m = 0;
-                    int n = 0;
-                    Assert.AreEqual(true, Neo.SmartContract.Helper.IsMultiSigContract(script, out m, out n));
+                    Assert.AreEqual(true, Neo.SmartContract.Helper.IsMultiSigContract(script, out int m, out int n));
                 }
                 else if (j == 1)
                 {
@@ -47,9 +45,7 @@ namespace Neo.UnitTests.SmartContract
                         publicKeys[i] = key.PublicKey;
                     }
                     byte[] script = Contract.CreateMultiSigRedeemScript(256, publicKeys);
-                    int m = 0;
-                    int n = 0;
-                    Assert.AreEqual(true, Neo.SmartContract.Helper.IsMultiSigContract(script, out m, out n));
+                    Assert.AreEqual(true, Neo.SmartContract.Helper.IsMultiSigContract(script, out int m, out int n));
                 }
                 else if (j == 2)
                 {
@@ -63,9 +59,7 @@ namespace Neo.UnitTests.SmartContract
                         publicKeys[i] = key.PublicKey;
                     }
                     byte[] script = Contract.CreateMultiSigRedeemScript(3, publicKeys);
-                    int m = 0;
-                    int n = 0;
-                    Assert.AreEqual(true, Neo.SmartContract.Helper.IsMultiSigContract(script, out m, out n));
+                    Assert.AreEqual(true, Neo.SmartContract.Helper.IsMultiSigContract(script, out int m, out int n));
                 }
                 else
                 {
@@ -80,12 +74,9 @@ namespace Neo.UnitTests.SmartContract
                     }
                     byte[] script = Contract.CreateMultiSigRedeemScript(3, publicKeys);
                     script[script.Length - 1] = 0x00;
-                    int m = 0;
-                    int n = 0;
-                    Assert.AreEqual(false, Neo.SmartContract.Helper.IsMultiSigContract(script, out m, out n));
+                    Assert.AreEqual(false, Neo.SmartContract.Helper.IsMultiSigContract(script, out int m, out int n));
                 }
             }
-
         }
 
         [TestMethod]
@@ -142,7 +133,7 @@ namespace Neo.UnitTests.SmartContract
                     StackItem stackItem = new ByteArray(new byte[5]);
                     byte[] result = Neo.SmartContract.Helper.Serialize(stackItem);
                     byte[] expectedArray = new byte[] {
-                        0x00,0x05,0x00,0x00,0x00,0x00,0x00
+                        0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00
                     };
                     Assert.AreEqual(Encoding.Default.GetString(expectedArray), Encoding.Default.GetString(result));
                 }
@@ -151,7 +142,7 @@ namespace Neo.UnitTests.SmartContract
                     StackItem stackItem = new VM.Types.Boolean(true);
                     byte[] result = Neo.SmartContract.Helper.Serialize(stackItem);
                     byte[] expectedArray = new byte[] {
-                        0x01,0x01
+                        0x01, 0x01
                     };
                     Assert.AreEqual(Encoding.Default.GetString(expectedArray), Encoding.Default.GetString(result));
                 }
@@ -160,13 +151,13 @@ namespace Neo.UnitTests.SmartContract
                     StackItem stackItem = new VM.Types.Integer(1);
                     byte[] result = Neo.SmartContract.Helper.Serialize(stackItem);
                     byte[] expectedArray = new byte[] {
-                        0x02,0x01,0x01
+                        0x02, 0x01, 0x01
                     };
                     Assert.AreEqual(Encoding.Default.GetString(expectedArray), Encoding.Default.GetString(result));
                 }
                 else if (i == 3)
                 {
-                    StackItem stackItem = new InteropInterface<Object>(new object());
+                    StackItem stackItem = new InteropInterface<object>(new object());
                     Action action = () => Neo.SmartContract.Helper.Serialize(stackItem);
                     action.ShouldThrow<NotSupportedException>();
                 }
@@ -175,15 +166,17 @@ namespace Neo.UnitTests.SmartContract
                     StackItem stackItem = new VM.Types.Integer(1);
                     byte[] result = Neo.SmartContract.Helper.Serialize(stackItem);
                     byte[] expectedArray = new byte[] {
-                        0x02,0x01,0x01
+                        0x02, 0x01, 0x01
                     };
                     Assert.AreEqual(Encoding.Default.GetString(expectedArray), Encoding.Default.GetString(result));
                 }
                 else if (i == 5)
                 {
                     StackItem stackItem1 = new VM.Types.Integer(1);
-                    List<StackItem> list = new List<StackItem>();
-                    list.Add(stackItem1);
+                    List<StackItem> list = new List<StackItem>
+                    {
+                        stackItem1
+                    };
                     StackItem stackItem2 = new VM.Types.Array(list);
                     byte[] result = Neo.SmartContract.Helper.Serialize(stackItem2);
                     byte[] expectedArray = new byte[] {
@@ -194,8 +187,10 @@ namespace Neo.UnitTests.SmartContract
                 else if (i == 6)
                 {
                     StackItem stackItem1 = new VM.Types.Integer(1);
-                    List<StackItem> list = new List<StackItem>();
-                    list.Add(stackItem1);
+                    List<StackItem> list = new List<StackItem>
+                    {
+                        stackItem1
+                    };
                     StackItem stackItem2 = new VM.Types.Struct(list);
                     byte[] result = Neo.SmartContract.Helper.Serialize(stackItem2);
                     byte[] expectedArray = new byte[] {
@@ -206,8 +201,10 @@ namespace Neo.UnitTests.SmartContract
                 else if (i == 7)
                 {
                     StackItem stackItem1 = new VM.Types.Integer(1);
-                    Dictionary<StackItem, StackItem> list = new Dictionary<StackItem, StackItem>();
-                    list.Add(new VM.Types.Integer(2), stackItem1);
+                    Dictionary<StackItem, StackItem> list = new Dictionary<StackItem, StackItem>
+                    {
+                        { new VM.Types.Integer(2), stackItem1 }
+                    };
                     StackItem stackItem2 = new VM.Types.Map(list);
                     byte[] result = Neo.SmartContract.Helper.Serialize(stackItem2);
                     byte[] expectedArray = new byte[] {

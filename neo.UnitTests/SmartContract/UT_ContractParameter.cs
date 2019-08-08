@@ -103,8 +103,8 @@ namespace Neo.UnitTests.SmartContract
                 if (i == 0)
                 {
                     ContractParameter contractParameter = new ContractParameter(ContractParameterType.Signature);
-                    JObject jobject=contractParameter.ToJson();
-                    Assert.AreEqual(jobject.ToString(),ContractParameter.FromJson(jobject).ToJson().ToString());
+                    JObject jobject = contractParameter.ToJson();
+                    Assert.AreEqual(jobject.ToString(), ContractParameter.FromJson(jobject).ToJson().ToString());
                 }
                 else if (i == 1)
                 {
@@ -261,7 +261,7 @@ namespace Neo.UnitTests.SmartContract
                     Assert.AreEqual("00", contractParameter.ToString());
                 }
                 else if (i == 2)
-                { 
+                {
                     ContractParameter contractParameter = new ContractParameter(ContractParameterType.Array);
                     Assert.AreEqual("[]", contractParameter.ToString());
                     ContractParameter internalContractParameter = new ContractParameter(ContractParameterType.Boolean);
