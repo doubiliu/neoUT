@@ -15,7 +15,7 @@ namespace Neo.UnitTests.SmartContract
             IVerifiable container = new TestVerifiable();
             UInt160 script_hash = new byte[] { 0x00 }.ToScriptHash();
             StackItem state = new ContainerPlaceholder();
-            NotifyEventArgs args = new NotifyEventArgs(container,script_hash,state);
+            NotifyEventArgs args = new NotifyEventArgs(container, script_hash, state);
             args.ScriptContainer.Should().Be(container);
         }
     }

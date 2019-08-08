@@ -44,7 +44,7 @@ namespace Neo.UnitTests.Wallets.NEP6
             };
 
             JObject @object = nep6Contract.ToJson();
-            JString jString = (JString) @object["script"];
+            JString jString = (JString)@object["script"];
             jString.Value.Should().Be(nep6Contract.Script.ToHexString());
 
             JBoolean jBoolean = (JBoolean)@object["deployed"];

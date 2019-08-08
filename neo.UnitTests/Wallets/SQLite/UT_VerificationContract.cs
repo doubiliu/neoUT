@@ -51,7 +51,7 @@ namespace Neo.UnitTests
             VerificationContract contract2 = new VerificationContract();
             contract2.Deserialize(reader);
             Assert.AreEqual(Encoding.Default.GetString(contract2.Script), Encoding.Default.GetString(contract1.Script));
-            Assert.AreEqual(1,contract2.ParameterList.Length);
+            Assert.AreEqual(1, contract2.ParameterList.Length);
             Assert.AreEqual(ContractParameterType.Signature, contract2.ParameterList[0]);
         }
 
@@ -142,7 +142,7 @@ namespace Neo.UnitTests
                 Script = Neo.SmartContract.Contract.CreateSignatureRedeemScript(key.PublicKey),
                 ParameterList = new[] { ContractParameterType.Signature }
             };
-            Assert.AreEqual(62,contract1.Size);
+            Assert.AreEqual(62, contract1.Size);
         }
     }
 }

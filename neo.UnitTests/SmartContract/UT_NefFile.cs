@@ -79,7 +79,7 @@ namespace Neo.UnitTests.SmartContract
         [TestMethod]
         public void TestGetSize()
         {
-            file.Size.Should().Be( 4 + 32 + 16 + 20 + 4 + 4 );
+            file.Size.Should().Be(4 + 32 + 16 + 20 + 4 + 4);
         }
 
         [TestMethod]

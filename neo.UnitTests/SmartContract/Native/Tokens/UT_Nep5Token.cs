@@ -24,7 +24,7 @@ namespace Neo.UnitTests.SmartContract.Native.Tokens
             var myDataCache = new MyDataCache<StorageKey, StorageItem>();
             StorageItem item = new StorageItem
             {
-                Value = new byte[]{ 0x01 }
+                Value = new byte[] { 0x01 }
             };
             var key = CreateStorageKey(Prefix_TotalSupply);
 

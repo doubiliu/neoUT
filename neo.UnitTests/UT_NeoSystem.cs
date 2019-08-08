@@ -9,7 +9,8 @@ namespace Neo.UnitTests
         private NeoSystem neoSystem;
 
         [TestInitialize]
-        public void Setup() {
+        public void Setup()
+        {
             neoSystem = TestBlockchain.InitializeMockNeoSystem();
         }
 
