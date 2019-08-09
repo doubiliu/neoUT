@@ -6,13 +6,11 @@ using Neo.VM;
 using Neo.VM.Types;
 using System;
 using System.Collections.Generic;
-using System.Numerics;
 
 namespace Neo.UnitTests.SmartContract.Enumerators
 {
-
     [TestClass]
-    public class UT_ConcatenatedIterator
+    public class UT_ConcatenatedEnumerator
     {
         [TestMethod]
         public void TestConcatenatedIteratorAndDispose()

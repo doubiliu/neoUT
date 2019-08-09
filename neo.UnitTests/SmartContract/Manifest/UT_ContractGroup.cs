@@ -18,9 +18,11 @@ namespace Neo.UnitTests.SmartContract.Manifest
                 privateKey[i] = (byte)random.Next(256);
             KeyPair keyPair = new KeyPair(privateKey);
             ECPoint publicKey = ECCurve.Secp256r1.G * privateKey;
-            ContractGroup contractGroup = new ContractGroup();
-            contractGroup.PubKey = publicKey;
-            contractGroup.Signature = new byte[20];
+            ContractGroup contractGroup = new ContractGroup
+            {
+                PubKey = publicKey,
+                Signature = new byte[20]
+            };
             Assert.AreEqual(false, contractGroup.IsValid(UInt160.Zero));
         }
     }

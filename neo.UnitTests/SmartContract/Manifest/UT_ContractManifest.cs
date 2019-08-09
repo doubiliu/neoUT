@@ -93,7 +93,7 @@ namespace Neo.UnitTests.SmartContract.Manifest
             BinaryWriter writer = new BinaryWriter(stream);
             BinaryReader reader = new BinaryReader(stream);
             var expected = ContractManifest.CreateDefault(UInt160.Zero);
-            expected.SafeMethods = WildCardContainer<string>.Create(new string[] { "AAA"});
+            expected.SafeMethods = WildCardContainer<string>.Create(new string[] { "AAA" });
             expected.Serialize(writer);
             stream.Seek(0, SeekOrigin.Begin);
             var actual = ContractManifest.CreateDefault(UInt160.Zero);
@@ -128,7 +128,7 @@ namespace Neo.UnitTests.SmartContract.Manifest
         {
             var temp = ContractManifest.CreateDefault(UInt160.Zero);
             temp.SafeMethods = WildCardContainer<string>.Create(new string[] { "AAA" });
-            Assert.AreEqual(true, temp.CanCall(ContractManifest.CreateDefault(UInt160.Zero),"AAA"));
+            Assert.AreEqual(true, temp.CanCall(ContractManifest.CreateDefault(UInt160.Zero), "AAA"));
         }
 
         [TestMethod]

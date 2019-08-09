@@ -6,7 +6,6 @@ namespace Neo.UnitTests.IO.Data.LevelDb
     [TestClass]
     public class UT_SliceBuilder
     {
-
         private SliceBuilder sliceBuilder;
 
         [TestInitialize]
@@ -88,7 +87,7 @@ namespace Neo.UnitTests.IO.Data.LevelDb
         public void TestBeginWithPrefix()
         {
             sliceBuilder = SliceBuilder.Begin(0x01);
-            sliceBuilder.Add((byte)0x02);
+            sliceBuilder.Add(0x02);
 
             Slice source = sliceBuilder;
             Slice expected = new byte[] { 0x01, 0x02 };

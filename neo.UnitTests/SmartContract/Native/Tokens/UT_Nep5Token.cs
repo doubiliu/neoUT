@@ -11,7 +11,6 @@ using System;
 
 namespace Neo.UnitTests.SmartContract.Native.Tokens
 {
-
     [TestClass]
     public class UT_Nep5Token
     {

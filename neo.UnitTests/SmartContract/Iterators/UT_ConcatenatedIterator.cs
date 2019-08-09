@@ -65,6 +65,7 @@ namespace Neo.UnitTests.SmartContract.Iterators
         {
             return new Integer(new BigInteger(val));
         }
+
         [TestMethod]
         public void TestDispose()
         {
@@ -76,6 +77,5 @@ namespace Neo.UnitTests.SmartContract.Iterators
             Action action = () => uut.Dispose();
             action.ShouldNotThrow<Exception>();
         }
-
     }
 }

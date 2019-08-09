@@ -446,11 +446,6 @@ namespace Neo.UnitTests.SmartContract.Native.Tokens
         }
 
         [TestMethod]
-        public void TestOnPersist()
-        {
-        }
-
-        [TestMethod]
         public void TestTotalSupply()
         {
             Snapshot snapshot = Store.GetSnapshot().Clone();

@@ -1,8 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Neo.Cryptography.ECC;
 using Neo.SmartContract.Manifest;
 using Neo.Wallets;
-using System;
 using System.Security.Cryptography;
 
 namespace Neo.UnitTests.SmartContract.Manifest
@@ -11,7 +9,7 @@ namespace Neo.UnitTests.SmartContract.Manifest
     public class UT_ContractPermissionDescriptor
     {
         [TestMethod]
-        public void TestCreateByECPoint()
+        public void TestCreateByECPointAndIsWildcard()
         {
             byte[] privateKey = new byte[32];
             RandomNumberGenerator rng = RandomNumberGenerator.Create();
@@ -20,16 +18,6 @@ namespace Neo.UnitTests.SmartContract.Manifest
             ContractPermissionDescriptor contractPermissionDescriptor = ContractPermissionDescriptor.Create(key.PublicKey);
             Assert.IsNotNull(contractPermissionDescriptor);
             Assert.AreEqual(key.PublicKey, contractPermissionDescriptor.Group);
-        }
-
-        [TestMethod]
-        public void TestIsWildcard()
-        {
-            byte[] privateKey = new byte[32];
-            RandomNumberGenerator rng = RandomNumberGenerator.Create();
-            rng.GetBytes(privateKey);
-            KeyPair key = new KeyPair(privateKey);
-            ContractPermissionDescriptor contractPermissionDescriptor = ContractPermissionDescriptor.Create(key.PublicKey);
             Assert.AreEqual(false, contractPermissionDescriptor.IsWildcard);
         }
 
