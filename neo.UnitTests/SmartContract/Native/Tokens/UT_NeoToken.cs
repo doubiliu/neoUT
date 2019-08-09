@@ -440,10 +440,9 @@ namespace Neo.UnitTests.SmartContract.Native.Tokens
             ret.Result.Should().BeTrue();
             ret.State.Should().BeTrue();
 
-            //Waiting for commit 4a17c2c
-            /*ret = Transfer4TesingOnBalanceChanging(new BigInteger(1), true);
+            ret = Transfer4TesingOnBalanceChanging(new BigInteger(1), true);
             ret.Result.Should().BeTrue();
-            ret.State.Should().BeTrue();*/
+            ret.State.Should().BeTrue();
         }
 
         [TestMethod]
@@ -493,8 +492,7 @@ namespace Neo.UnitTests.SmartContract.Native.Tokens
             ret.State.Should().BeTrue();
             ret.Result.Should().BeTrue();
 
-            //Waiting for commit 4a17c2c
-            /*snapshot.Storages.Delete(keyAccount);
+            snapshot.Storages.Delete(keyAccount);
             snapshot.Storages.GetAndChange(keyAccount, () => new StorageItem
             {
                 Value = new AccountState()
@@ -508,7 +506,7 @@ namespace Neo.UnitTests.SmartContract.Native.Tokens
             });
             ret = Check_Vote(snapshot, account.ToArray(), new byte[][] { ECCurve.Secp256r1.G.ToArray() }, true);
             ret.State.Should().BeTrue();
-            ret.Result.Should().BeTrue();*/
+            ret.Result.Should().BeTrue();
         }
 
         [TestMethod]
