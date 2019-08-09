@@ -243,8 +243,8 @@ namespace Neo.UnitTests.SmartContract
                 {
                     StackItem stackItem = new ByteArray(new byte[5]);
                     byte[] byteArray = Neo.SmartContract.Helper.Serialize(stackItem);
-                    StackItem result = Neo.SmartContract.Helper.DeserializeStackItem(byteArray,1, (uint)byteArray.Length);
-                    Assert.AreEqual(stackItem,result);
+                    StackItem result = Neo.SmartContract.Helper.DeserializeStackItem(byteArray, 1, (uint)byteArray.Length);
+                    Assert.AreEqual(stackItem, result);
                 }
                 else if (i == 1)
                 {
@@ -306,8 +306,9 @@ namespace Neo.UnitTests.SmartContract
         }
 
         [TestMethod]
-        public void TestToInteropMethodHash() {
-            byte[] temp1= Encoding.ASCII.GetBytes("AAAA");
+        public void TestToInteropMethodHash()
+        {
+            byte[] temp1 = Encoding.ASCII.GetBytes("AAAA");
             byte[] temp2 = Neo.Cryptography.Helper.Sha256(temp1);
             uint result = BitConverter.ToUInt32(temp2, 0);
             Assert.AreEqual(result, Neo.SmartContract.Helper.ToInteropMethodHash("AAAA"));
@@ -323,8 +324,10 @@ namespace Neo.UnitTests.SmartContract
         }
 
         [TestMethod]
-        public void TestVerifyWitnesses() {
-            for (int i = 0; i < 3; i++) {
+        public void TestVerifyWitnesses()
+        {
+            for (int i = 0; i < 3; i++)
+            {
                 if (i == 0)
                 {
                     var mockSnapshot = new Mock<Snapshot>();
@@ -335,7 +338,8 @@ namespace Neo.UnitTests.SmartContract
                     mockSnapshot.SetupGet(p => p.Blocks).Returns(testDataCache);
                     Assert.AreEqual(false, Neo.SmartContract.Helper.VerifyWitnesses(new Header() { PrevHash = index }, mockSnapshot.Object, 100));
                 }
-                else if (i == 1) {
+                else if (i == 1)
+                {
                     var mockSnapshot = new Mock<Snapshot>();
                     UInt256 index = UInt256.Parse("0xa400ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff01");
                     TrimmedBlock block = new TrimmedBlock();

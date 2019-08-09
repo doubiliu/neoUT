@@ -45,7 +45,7 @@ namespace Neo.UnitTests.SmartContract.Enumerators
             IteratorKeysWrapper it1 = new IteratorKeysWrapper(arrayWrapper1);
             IteratorKeysWrapper it2 = new IteratorKeysWrapper(arrayWrapper2);
             ConcatenatedEnumerator uut = new ConcatenatedEnumerator(it1, it2);
-            Assert.AreEqual(true,uut.Next());
+            Assert.AreEqual(true, uut.Next());
             Assert.AreEqual(new Integer(0), uut.Value());
             Assert.AreEqual(true, uut.Next());
             Assert.AreEqual(new Integer(0), uut.Value());
