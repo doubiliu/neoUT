@@ -274,11 +274,11 @@ namespace Neo.UnitTests.SmartContract
 
             engine.CurrentContext.EvaluationStack.Push(pubkey.EncodePoint(true));
             InteropService.Invoke(engine, InteropService.System_Runtime_CheckWitness).Should().BeTrue();
-            engine.CurrentContext.EvaluationStack.Pop().GetBoolean().Should().Be(true);
+            engine.CurrentContext.EvaluationStack.Pop().GetBoolean().Should().Be(false);
 
             engine.CurrentContext.EvaluationStack.Push(((Transaction)engine.ScriptContainer).Sender.ToArray());
             InteropService.Invoke(engine, InteropService.System_Runtime_CheckWitness).Should().BeTrue();
-            engine.CurrentContext.EvaluationStack.Pop().GetBoolean().Should().Be(true);
+            engine.CurrentContext.EvaluationStack.Pop().GetBoolean().Should().Be(false);
 
             engine.CurrentContext.EvaluationStack.Push(new byte[0]);
             InteropService.Invoke(engine, InteropService.System_Runtime_CheckWitness).Should().BeFalse();
