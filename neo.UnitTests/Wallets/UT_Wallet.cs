@@ -98,7 +98,7 @@ namespace Neo.UnitTests.Wallets
         public static void ClassInit(TestContext context)
         {
             glkey = UT_Crypto.generateCertainKey(32);
-            nep2Key = glkey.Export("pwd");
+            nep2Key = glkey.Export("pwd", 0, 0, 0);
         }
 
         [TestInitialize]
@@ -253,19 +253,19 @@ namespace Neo.UnitTests.Wallets
         [TestMethod]
         public void TestGetPrivateKeyFromNEP2()
         {
-            Action action = () => Wallet.GetPrivateKeyFromNEP2(null, null);
+            Action action = () => Wallet.GetPrivateKeyFromNEP2(null, null, 0, 0, 0);
             action.ShouldThrow<ArgumentNullException>();
 
-            action = () => Wallet.GetPrivateKeyFromNEP2("TestGetPrivateKeyFromNEP2", null);
+            action = () => Wallet.GetPrivateKeyFromNEP2("TestGetPrivateKeyFromNEP2", null, 0, 0, 0);
             action.ShouldThrow<ArgumentNullException>();
 
-            action = () => Wallet.GetPrivateKeyFromNEP2("3vQB7B6MrGQZaxCuFg4oh", "TestGetPrivateKeyFromNEP2");
+            action = () => Wallet.GetPrivateKeyFromNEP2("3vQB7B6MrGQZaxCuFg4oh", "TestGetPrivateKeyFromNEP2", 0, 0, 0);
             action.ShouldThrow<FormatException>();
 
-            action = () => Wallet.GetPrivateKeyFromNEP2(nep2Key, "Test");
+            action = () => Wallet.GetPrivateKeyFromNEP2(nep2Key, "Test", 0, 0, 0);
             action.ShouldThrow<FormatException>();
 
-            Wallet.GetPrivateKeyFromNEP2(nep2Key, "pwd").Should().BeEquivalentTo(new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31 });
+            Wallet.GetPrivateKeyFromNEP2(nep2Key, "pwd", 0, 0, 0).Should().BeEquivalentTo(new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31 });
         }
 
         [TestMethod]
@@ -291,7 +291,7 @@ namespace Neo.UnitTests.Wallets
         public void TestImport2()
         {
             MyWallet wallet = new MyWallet();
-            wallet.Import(nep2Key, "pwd").Should().NotBeNull();
+            wallet.Import(nep2Key, "pwd", 0, 0, 0).Should().NotBeNull();
         }
 
         [TestMethod]
@@ -392,7 +392,7 @@ namespace Neo.UnitTests.Wallets
         public void TestMakeTransaction2()
         {
             MyWallet wallet = new MyWallet();
-            Action action = () => wallet.MakeTransaction(new TransactionAttribute[] { }, new byte[] { }, UInt160.Zero);
+            Action action = () => wallet.MakeTransaction(new byte[] { }, UInt160.Zero, new TransactionAttribute[] { });
             action.ShouldThrow<ArgumentException>();
 
             Contract contract = Contract.Create(new ContractParameterType[] { ContractParameterType.Boolean }, new byte[] { 1 });
@@ -412,10 +412,10 @@ namespace Neo.UnitTests.Wallets
             }
             .ToByteArray();
 
-            var tx = wallet.MakeTransaction(new TransactionAttribute[] { }, new byte[] { }, account.ScriptHash);
+            var tx = wallet.MakeTransaction(new byte[] { }, account.ScriptHash, new TransactionAttribute[] { });
             tx.Should().NotBeNull();
 
-            tx = wallet.MakeTransaction(new TransactionAttribute[] { }, new byte[] { });
+            tx = wallet.MakeTransaction(new byte[] { }, null, new TransactionAttribute[] { });
             tx.Should().NotBeNull();
 
             entry.Value = new NeoToken.AccountState()
