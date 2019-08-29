@@ -8,7 +8,7 @@ namespace Neo.Persistence.LevelDB
 {
     internal class DbSnapshot : Snapshot
     {
-        private readonly DB db;
+        private readonly LevelDBCore db;
         private readonly LSnapshot snapshot;
         private readonly WriteBatch batch;
 
@@ -20,19 +20,19 @@ namespace Neo.Persistence.LevelDB
         public override MetaDataCache<HashIndexState> BlockHashIndex { get; }
         public override MetaDataCache<HashIndexState> HeaderHashIndex { get; }
 
-        public DbSnapshot(DB db)
+        public DbSnapshot(LevelDBCore db)
         {
             this.db = db;
             this.snapshot = db.GetSnapshot();
             this.batch = new WriteBatch();
             ReadOptions options = new ReadOptions { FillCache = false, Snapshot = snapshot };
-            Blocks = new DbCache<UInt256, TrimmedBlock>(db, options, batch, Prefixes.DATA_Block);
-            Transactions = new DbCache<UInt256, TransactionState>(db, options, batch, Prefixes.DATA_Transaction);
-            Contracts = new DbCache<UInt160, ContractState>(db, options, batch, Prefixes.ST_Contract);
-            Storages = new DbCache<StorageKey, StorageItem>(db, options, batch, Prefixes.ST_Storage);
-            HeaderHashList = new DbCache<UInt32Wrapper, HeaderHashList>(db, options, batch, Prefixes.IX_HeaderHashList);
-            BlockHashIndex = new DbMetaDataCache<HashIndexState>(db, options, batch, Prefixes.IX_CurrentBlock);
-            HeaderHashIndex = new DbMetaDataCache<HashIndexState>(db, options, batch, Prefixes.IX_CurrentHeader);
+            Blocks = new DbCache<UInt256, TrimmedBlock>(db, Prefixes.DATA_Block, options, batch);
+            Transactions = new DbCache<UInt256, TransactionState>(db, Prefixes.DATA_Transaction, options, batch);
+            Contracts = new DbCache<UInt160, ContractState>(db, Prefixes.ST_Contract, options, batch);
+            Storages = new DbCache<StorageKey, StorageItem>(db, Prefixes.ST_Storage, options, batch);
+            HeaderHashList = new DbCache<UInt32Wrapper, HeaderHashList>(db, Prefixes.IX_HeaderHashList, options, batch);
+            BlockHashIndex = new DbMetaDataCache<HashIndexState>(db, Prefixes.IX_CurrentBlock, options, batch);
+            HeaderHashIndex = new DbMetaDataCache<HashIndexState>(db, Prefixes.IX_CurrentHeader, options, batch);
         }
 
         public override void Commit()
