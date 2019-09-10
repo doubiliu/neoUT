@@ -1,9 +1,7 @@
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Neo.IO.Json;
-using Neo.Network.P2P.Payloads;
 using Neo.Network.RPC.Models;
-using System;
 
 namespace Neo.UnitTests.Network.RPC.Models
 {
