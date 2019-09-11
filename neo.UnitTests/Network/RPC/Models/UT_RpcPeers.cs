@@ -11,7 +11,8 @@ namespace Neo.UnitTests.Network.RPC.Models
         [TestMethod]
         public void TestToJson()
         {
-            var rpcPeers = new RpcPeers() {
+            var rpcPeers = new RpcPeers()
+            {
                 Unconnected = new RpcPeer[] {
                     new RpcPeer()
                     {
@@ -34,7 +35,6 @@ namespace Neo.UnitTests.Network.RPC.Models
                     }
                 }
             };
-
             var json = rpcPeers.ToJson();
             ((JArray)json["unconnected"]).Count.Should().Be(1);
             ((JArray)json["bad"]).Count.Should().Be(1);

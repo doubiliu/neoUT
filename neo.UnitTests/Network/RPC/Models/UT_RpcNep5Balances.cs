@@ -14,13 +14,17 @@ namespace Neo.UnitTests.Network.RPC.Models
         [TestInitialize]
         public void Setup()
         {
-            balances = new RpcNep5Balances() {
+            balances = new RpcNep5Balances()
+            {
                 Address = "abc",
-                Balances = new RpcNep5Balance[] { new RpcNep5Balance() {
-                    AssetHash = UInt160.Zero,
-                    Amount = BigInteger.Zero,
-                    LastUpdatedBlock = 0
-                 } }
+                Balances = new RpcNep5Balance[] {
+                    new RpcNep5Balance()
+                    {
+                        AssetHash = UInt160.Zero,
+                        Amount = BigInteger.Zero,
+                        LastUpdatedBlock = 0
+                    }
+                }
             };
         }
 

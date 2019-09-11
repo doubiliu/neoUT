@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using Moq.Protected;
@@ -112,6 +113,9 @@ namespace Neo.UnitTests.Network.RPC
 
             var result = rpc.GetBlockHex("773dd2dae4a9c9275290f89b56e67d7363ea4826dfd4fc13cc01cf73a44b0d0e");
             Assert.AreEqual("000000002deadfa82cbc4682f5800", result);
+
+            result = rpc.GetBlockHex("100");
+            Assert.AreEqual("000000002deadfa82cbc4682f5800", result);
         }
 
         [TestMethod]
@@ -134,6 +138,12 @@ namespace Neo.UnitTests.Network.RPC
             MockResponse(response.ToString());
 
             var result = rpc.GetBlock("773dd2dae4a9c9275290f89b56e67d7363ea4826dfd4fc13cc01cf73a44b0d0e");
+            Assert.AreEqual(block.Hash.ToString(), result.Block.Hash.ToString());
+            Assert.IsNull(result.Confirmations);
+            Assert.AreEqual(block.Transactions.Length, result.Block.Transactions.Length);
+            Assert.AreEqual(block.Transactions[0].Hash.ToString(), result.Block.Transactions[0].Hash.ToString());
+
+            result = rpc.GetBlock("100");
             Assert.AreEqual(block.Hash.ToString(), result.Block.Hash.ToString());
             Assert.IsNull(result.Confirmations);
             Assert.AreEqual(block.Transactions.Length, result.Block.Transactions.Length);
@@ -181,6 +191,9 @@ namespace Neo.UnitTests.Network.RPC
 
             var result = rpc.GetBlockHeaderHex("100");
             Assert.AreEqual("0x4c1e879872344349067c3b1a30781eeb4f9040d3795db7922f513f6f9660b9b2", result);
+
+            result = rpc.GetBlockHeaderHex("773dd2dae4a9c9275290f89b56e67d7363ea4826dfd4fc13cc01cf73a44b0d0e");
+            Assert.AreEqual("0x4c1e879872344349067c3b1a30781eeb4f9040d3795db7922f513f6f9660b9b2", result);
         }
 
         [TestMethod]
@@ -195,6 +208,10 @@ namespace Neo.UnitTests.Network.RPC
             MockResponse(response.ToString());
 
             var result = rpc.GetBlockHeader("100");
+            Assert.AreEqual(header.Hash.ToString(), result.Header.Hash.ToString());
+            Assert.IsNull(result.Confirmations);
+
+            result = rpc.GetBlockHeader("773dd2dae4a9c9275290f89b56e67d7363ea4826dfd4fc13cc01cf73a44b0d0e");
             Assert.AreEqual(header.Hash.ToString(), result.Header.Hash.ToString());
             Assert.IsNull(result.Confirmations);
 
@@ -535,6 +552,14 @@ namespace Neo.UnitTests.Network.RPC
 
             var result = rpc.ValidateAddress("AQVh2pG732YvtNaxEGkQUei3YA4cvo7d2i");
             Assert.AreEqual(json.ToString(), result.ToJson().ToString());
+        }
+
+        [TestMethod]
+        public void TestConstructorByUrlAndDispose()
+        {
+            var client = new RpcClient("http://www.google.com");
+            Action action = () => client.Dispose();
+            action.ShouldNotThrow<Exception>();
         }
     }
 }

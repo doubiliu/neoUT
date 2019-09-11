@@ -10,11 +10,11 @@ namespace Neo.UnitTests.Network.RPC.Models
         [TestMethod]
         public void TestToJson()
         {
-            var rpcPeer = new RpcPeer() {
+            var rpcPeer = new RpcPeer()
+            {
                 Address = "abc",
                 Port = 800
             };
-
             var json = rpcPeer.ToJson();
             json["address"].AsString().Should().Be("abc");
             json["port"].AsNumber().Should().Be(800);

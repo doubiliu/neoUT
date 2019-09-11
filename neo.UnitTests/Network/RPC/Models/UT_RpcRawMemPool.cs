@@ -20,7 +20,6 @@ namespace Neo.UnitTests.Network.RPC.Models
                 "c", "d"
                 }
             };
-
             var json = pool.ToJson();
             json["height"].AsNumber().Should().Be(1);
             json["verified"].AsString().Should().Be("a,b");

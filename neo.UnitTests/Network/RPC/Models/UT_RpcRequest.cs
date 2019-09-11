@@ -20,9 +20,8 @@ namespace Neo.UnitTests.Network.RPC.Models
                     new JBoolean(true)
                 }
             };
-
             var json = req.ToJson();
-            var rpcRequest =  RpcRequest.FromJson(json);
+            var rpcRequest = RpcRequest.FromJson(json);
             rpcRequest.Jsonrpc.Should().Be("myrpc");
             rpcRequest.Method.Should().Be("get");
             rpcRequest.Id.Should().Be(1);
