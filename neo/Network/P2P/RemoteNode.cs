@@ -7,6 +7,7 @@ using Neo.IO.Actors;
 using Neo.Ledger;
 using Neo.Network.P2P.Capabilities;
 using Neo.Network.P2P.Payloads;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -31,6 +32,10 @@ namespace Neo.Network.P2P
         public VersionPayload Version { get; private set; }
         public uint LastBlockIndex { get; private set; } = 0;
         public bool IsFullNode { get; private set; } = false;
+        public static int times = 0;
+        public static int times1 = 0;
+        public static System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
+        public static System.Diagnostics.Stopwatch stopwatch1 = new System.Diagnostics.Stopwatch();
 
         public RemoteNode(NeoSystem system, object connection, IPEndPoint remote, IPEndPoint local)
             : base(connection, remote, local)
@@ -38,6 +43,7 @@ namespace Neo.Network.P2P
             this.system = system;
             this.protocol = Context.ActorOf(ProtocolHandler.Props(system));
             LocalNode.Singleton.RemoteNodes.TryAdd(Self, this);
+            Console.WriteLine("RemoteNode added: " + remote.ToString());
 
             var capabilities = new List<NodeCapability>
             {
@@ -69,6 +75,11 @@ namespace Neo.Network.P2P
 
         private void EnqueueMessage(Message message)
         {
+            if (message.Command == MessageCommand.GetData)
+            {
+                times1++;
+                stopwatch1.Start();
+            }
             bool is_single = false;
             switch (message.Command)
             {
@@ -101,6 +112,7 @@ namespace Neo.Network.P2P
             if (!is_single || message_queue.All(p => p.Command != message.Command))
                 message_queue.Enqueue(message);
             CheckMessageQueue();
+            stopwatch1.Stop();
         }
 
         protected override void OnAck()
@@ -111,10 +123,15 @@ namespace Neo.Network.P2P
 
         protected override void OnData(ByteString data)
         {
+            stopwatch.Start();
             msg_buffer = msg_buffer.Concat(data);
 
             for (Message message = TryParseMessage(); message != null; message = TryParseMessage())
+            {
+                if (message.Command == MessageCommand.Inv) times++;
                 protocol.Tell(message);
+            }
+            stopwatch.Stop();
         }
 
         protected override void OnReceive(object message)
@@ -218,7 +235,11 @@ namespace Neo.Network.P2P
 
         protected override void PostStop()
         {
-            LocalNode.Singleton.RemoteNodes.TryRemove(Self, out _);
+            //LocalNode.Singleton.RemoteNodes.TryRemove(Self, out _);
+            RemoteNode tmp2 = null;
+            LocalNode.Singleton.RemoteNodes.TryGetValue(Self, out tmp2);
+            bool tmp = LocalNode.Singleton.RemoteNodes.TryRemove(Self, out _);
+            Console.WriteLine("RemoteNode removed: " + tmp2.Remote.ToString() + " " + tmp);
             base.PostStop();
         }
 

@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Akka.Actor;
 using Microsoft.AspNetCore.Builder;
@@ -15,6 +16,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.Extensions.DependencyInjection;
+using Neo.Cryptography.ECC;
 using Neo.IO;
 using Neo.IO.Json;
 using Neo.Ledger;
@@ -73,6 +75,8 @@ namespace Neo.Network.RPC
 
         private IWebHost host;
         private readonly NeoSystem system;
+        public static readonly string utxoFile = "utxo.json";
+        public static readonly string utxoFile1 = "utxo1.json";
 
         public RpcServer(NeoSystem system, Wallet wallet = null, long maxGasInvoke = default)
         {
@@ -266,6 +270,242 @@ namespace Neo.Network.RPC
                         string address = _params[0].AsString();
                         return ValidateAddress(address);
                     }
+                case "countTransactions":
+                    {
+                        if (false)
+                            throw new RpcException(-400, "Access denied.");
+                        else
+                        {
+                            uint startHeight = uint.Parse(_params[0].AsString());
+                            uint currentHeight = (Blockchain.Singleton.Height > 0) ? Blockchain.Singleton.Height : 0;
+                            if (_params.Count() > 1)
+                            {
+                                currentHeight = Math.Min(uint.Parse(_params[1].AsString()), currentHeight);
+                            }
+                            if (startHeight > currentHeight || startHeight < 0) return "Invalid start height.";
+                            int txSum = 0;
+                            for (uint i = startHeight; i <= currentHeight; i++)
+                            {
+                                Block block = Blockchain.Singleton.Store.GetBlock(i);
+                                txSum += block.Transactions.Count() - 1;
+                            }
+                            return txSum;
+                        }
+                    }
+                case "multisig":
+                    {
+                        if (Wallet == null) return false;
+                        int m = int.Parse(_params[0].AsString());
+                        int n = _params.Count - 1;
+                        if (m < 1 || m > n || n > 1024)
+                        {
+                            return "Error. m = " + m +", n = " + n;
+                        }
+
+                        ECPoint[] publicKeys = _params.Skip(1).Select(p => ECPoint.Parse(p.AsString(), ECCurve.Secp256r1)).ToArray();
+                        
+                        Contract multiSignContract = Contract.CreateMultiSigContract(m, publicKeys);
+                        KeyPair keyPair = Wallet.GetAccounts().FirstOrDefault(p => p.HasKey && publicKeys.Contains(p.GetKey().PublicKey))?.GetKey();
+
+                        WalletAccount account = Wallet.CreateAccount(multiSignContract, keyPair);
+                        if (Wallet is Wallets.NEP6.NEP6Wallet wallet)
+                            wallet.Save();
+
+                        return multiSignContract.Address;
+                    }
+                case "newTransMigrate":
+                    {
+                        if (!File.Exists(utxoFile))
+                            throw new RpcException(-400, "Access denied.");
+                        else
+                        {
+                            double sleepInterval = double.Parse(_params[0].AsString());
+                            int TxAmount = int.Parse(_params[1].AsString());
+                            if (sleepInterval < 0) return "Invalid sleepInterval";
+                            if (TxAmount <= 0) return "Invalid TxAmount";
+                            int successfulTransaction = 0;
+                            FileStream stream = new FileStream(utxoFile, FileMode.Open);
+                            BinaryReader reader = new BinaryReader(stream);
+                            Transaction[] transactions = new Transaction[reader.ReadVarInt()];
+                            for (int i = 0; i < transactions.Length; i++)
+                            {
+                                transactions[i] = Transaction.DeserializeFrom(reader);
+                            }
+                            reader.Close();
+                            stream.Close();
+                            reader.Dispose();
+                            stream.Dispose();
+
+                            int realTxAmount = Math.Min(TxAmount, transactions.Length);
+                            if (sleepInterval == 0)
+                            {
+                                for (long i = 0; i < realTxAmount; i++)
+                                {
+                                    //wallet.ApplyTransaction(transactions[i]);
+                                    //system.LocalNode.Tell(new LocalNode.Relay { Inventory = transactions[i] });
+                                    if (Blockchain.Singleton.MemPool.TryAdd(transactions[i].Hash, transactions[i]))
+                                    {
+                                        system.LocalNode.Tell(new LocalNode.RelayDirectly { Inventory = transactions[i] });
+                                        successfulTransaction++;
+                                    }
+                                }
+                            }
+                            else if (sleepInterval < 1)
+                            {
+                                int interval = (int)(1 / sleepInterval);
+                                int times = 0;
+                                for (long i = 0; i < realTxAmount; i++)
+                                {
+                                    //wallet.ApplyTransaction(transactions[i]);
+                                    //system.LocalNode.Tell(new LocalNode.Relay { Inventory = transactions[i] });
+                                    if (Blockchain.Singleton.MemPool.TryAdd(transactions[i].Hash, transactions[i]))
+                                    {
+                                        system.LocalNode.Tell(new LocalNode.RelayDirectly { Inventory = transactions[i] });
+                                        successfulTransaction++;
+                                    }
+                                    times++;
+                                    if (times == interval)
+                                    {
+                                        times = 0;
+                                        Thread.Sleep(1);
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                for (long i = 0; i < realTxAmount; i++)
+                                {
+                                    //wallet.ApplyTransaction(transactions[i]);
+                                    //system.LocalNode.Tell(new LocalNode.Relay { Inventory = transactions[i] });
+                                    if (Blockchain.Singleton.MemPool.TryAdd(transactions[i].Hash, transactions[i]))
+                                    {
+                                        system.LocalNode.Tell(new LocalNode.RelayDirectly { Inventory = transactions[i] });
+                                        successfulTransaction++;
+                                    }
+                                    Thread.Sleep((int)sleepInterval);
+                                }
+                            }
+                            TxAmount -= transactions.Length;
+                            if (TxAmount > 0)
+                            {
+                                transactions = null;
+                                stream = new FileStream(utxoFile1, FileMode.Open);
+                                reader = new BinaryReader(stream);
+                                transactions = new Transaction[reader.ReadVarInt()];
+                                for (int i = 0; i < transactions.Length; i++)
+                                {
+                                    transactions[i] = Transaction.DeserializeFrom(reader);
+                                }
+                                reader.Close();
+                                stream.Close();
+                                reader.Dispose();
+                                stream.Dispose();
+
+                                realTxAmount = Math.Min(TxAmount, transactions.Length);
+                                if (sleepInterval == 0)
+                                {
+                                    for (long i = 0; i < realTxAmount; i++)
+                                    {
+                                        //wallet.ApplyTransaction(transactions[i]);
+                                        //system.LocalNode.Tell(new LocalNode.Relay { Inventory = transactions[i] });
+                                        if (Blockchain.Singleton.MemPool.TryAdd(transactions[i].Hash, transactions[i]))
+                                        {
+                                            system.LocalNode.Tell(new LocalNode.RelayDirectly { Inventory = transactions[i] });
+                                            successfulTransaction++;
+                                        }
+                                    }
+                                }
+                                else if (sleepInterval < 1)
+                                {
+                                    int interval = (int)(1 / sleepInterval);
+                                    int times = 0;
+                                    for (long i = 0; i < realTxAmount; i++)
+                                    {
+                                        //wallet.ApplyTransaction(transactions[i]);
+                                        //system.LocalNode.Tell(new LocalNode.Relay { Inventory = transactions[i] });
+                                        if (Blockchain.Singleton.MemPool.TryAdd(transactions[i].Hash, transactions[i]))
+                                        {
+                                            system.LocalNode.Tell(new LocalNode.RelayDirectly { Inventory = transactions[i] });
+                                            successfulTransaction++;
+                                        }
+                                        times++;
+                                        if (times == interval)
+                                        {
+                                            times = 0;
+                                            Thread.Sleep(1);
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    for (long i = 0; i < realTxAmount; i++)
+                                    {
+                                        //wallet.ApplyTransaction(transactions[i]);
+                                        //system.LocalNode.Tell(new LocalNode.Relay { Inventory = transactions[i] });
+                                        if (Blockchain.Singleton.MemPool.TryAdd(transactions[i].Hash, transactions[i]))
+                                        {
+                                            system.LocalNode.Tell(new LocalNode.RelayDirectly { Inventory = transactions[i] });
+                                            successfulTransaction++;
+                                        }
+                                        Thread.Sleep((int)sleepInterval);
+                                    }
+                                }
+                            }
+                            return successfulTransaction + ":" + Blockchain.Singleton.Height.ToString();
+                        }
+                    }
+                case "createTransactions":
+                    {
+                        if (Wallet == null)
+                            throw new RpcException(-400, "Access denied.");
+                        else
+                        {
+                            UInt160 asset_id = UInt160.Parse(_params[0].AsString());
+                            long migrateCount = long.Parse(_params[1].AsString());
+                            int spreadAmountPerAccount = int.Parse(_params[2].AsString());
+                            if (migrateCount <= 0) return "Invalid migrateCount";
+                            UInt160 originalAccount = Wallet.GetAccounts().Where(p => !p.Lock && !p.WatchOnly).Select(p => p.ScriptHash).ToArray()[0];
+                            AssetDescriptor descriptor = new AssetDescriptor(asset_id);
+                            TransferOutput[] outputs = new TransferOutput[]
+                            {
+                                new TransferOutput
+                                {
+                                    AssetId = asset_id,
+                                    Value = BigDecimal.Parse(spreadAmountPerAccount.ToString(), descriptor.Decimals),
+                                    ScriptHash = originalAccount
+                                }
+                            };
+                            Transaction[] transactions = new Transaction[migrateCount];
+                            int successfulTransaction = 0;
+                            for (int i = 0; i < migrateCount; i++)
+                            {
+                                transactions[i] = Wallet.MakeTransaction(outputs, originalAccount);
+                                if (transactions[i] == null)
+                                    throw new RpcException(-300, "Insufficient funds");
+                                ContractParametersContext context = new ContractParametersContext(transactions[i]);
+                                Wallet.Sign(context);
+                                if (context.Completed)
+                                {
+                                    transactions[i].Witnesses = context.GetWitnesses();
+                                    successfulTransaction++;
+                                }
+                            }
+                            /*for (int i = 0; i < migrateCount; i++)
+                            {
+                                system.LocalNode.Tell(new LocalNode.Relay { Inventory = transactions[i] });
+                            }*/
+                            FileStream stream = new FileStream(utxoFile, FileMode.Create);
+                            BinaryWriter writer = new BinaryWriter(stream);
+                            writer.Write(transactions);
+                            writer.Flush();
+                            stream.Flush();
+                            writer.Close();
+                            stream.Close();
+                            writer.Dispose();
+                            stream.Dispose();
+                            return successfulTransaction;
+                        }
+                    }
                 default:
                     throw new RpcException(-32601, "Method not found");
             }
@@ -373,7 +613,8 @@ namespace Neo.Network.RPC
 #if DEBUG
                 return CreateErrorResponse(request["id"], ex.HResult, ex.Message, ex.StackTrace);
 #else
-                return CreateErrorResponse(request["id"], ex.HResult, ex.Message);
+                //return CreateErrorResponse(request["id"], ex.HResult, ex.Message);
+                return CreateErrorResponse(request["id"], ex.HResult, ex.Message, ex.StackTrace);
 #endif
             }
             JObject response = CreateResponse(request["id"]);

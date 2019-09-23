@@ -26,6 +26,8 @@ namespace Neo.Network.P2P
         private VersionPayload version;
         private bool verack = false;
         private BloomFilter bloom_filter;
+        public static System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
+        public static int times = 0;
 
         public ProtocolHandler(NeoSystem system)
         {
@@ -245,21 +247,30 @@ namespace Neo.Network.P2P
 
         private void OnInvMessageReceived(InvPayload payload)
         {
-            UInt256[] hashes = payload.Hashes.Where(p => knownHashes.Add(p) && !sentHashes.Contains(p)).ToArray();
-            if (hashes.Length == 0) return;
-            switch (payload.Type)
+            stopwatch.Start();
+            try
             {
-                case InventoryType.Block:
-                    using (Snapshot snapshot = Blockchain.Singleton.GetSnapshot())
-                        hashes = hashes.Where(p => !snapshot.ContainsBlock(p)).ToArray();
-                    break;
-                case InventoryType.TX:
-                    using (Snapshot snapshot = Blockchain.Singleton.GetSnapshot())
-                        hashes = hashes.Where(p => !snapshot.ContainsTransaction(p)).ToArray();
-                    break;
+                UInt256[] hashes = payload.Hashes.Where(p => knownHashes.Add(p) && !sentHashes.Contains(p)).ToArray();
+                if (hashes.Length == 0) return;
+                switch (payload.Type)
+                {
+                    case InventoryType.Block:
+                        using (Snapshot snapshot = Blockchain.Singleton.GetSnapshot())
+                            hashes = hashes.Where(p => !snapshot.ContainsBlock(p)).ToArray();
+                        break;
+                    case InventoryType.TX:
+                        times++;
+                        using (Snapshot snapshot = Blockchain.Singleton.GetSnapshot())
+                            hashes = hashes.Where(p => !snapshot.ContainsTransaction(p)).ToArray();
+                        break;
+                }
+                if (hashes.Length == 0) return;
+                system.TaskManager.Tell(new TaskManager.NewTasks { Payload = InvPayload.Create(payload.Type, hashes) }, Context.Parent);
             }
-            if (hashes.Length == 0) return;
-            system.TaskManager.Tell(new TaskManager.NewTasks { Payload = InvPayload.Create(payload.Type, hashes) }, Context.Parent);
+            finally
+            {
+                stopwatch.Stop();
+            }
         }
 
         private void OnMemPoolMessageReceived()

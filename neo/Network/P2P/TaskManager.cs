@@ -32,6 +32,18 @@ namespace Neo.Network.P2P
 
         private readonly UInt256 HeaderTaskHash = UInt256.Zero;
         private bool HasHeaderTask => globalTasks.ContainsKey(HeaderTaskHash);
+        public static int times = 0;
+        public static int times2 = 0;
+        public static System.Diagnostics.Stopwatch stopwatch1 = new System.Diagnostics.Stopwatch();
+        public static System.Diagnostics.Stopwatch stopwatch2 = new System.Diagnostics.Stopwatch();
+        public static System.Diagnostics.Stopwatch stopwatch3 = new System.Diagnostics.Stopwatch();
+        public static System.Diagnostics.Stopwatch stopwatch4 = new System.Diagnostics.Stopwatch();
+        public static System.Diagnostics.Stopwatch stopwatch5 = new System.Diagnostics.Stopwatch();
+        public static System.Diagnostics.Stopwatch stopwatch6 = new System.Diagnostics.Stopwatch();
+        public static System.Diagnostics.Stopwatch stopwatch7 = new System.Diagnostics.Stopwatch();
+        public static System.Diagnostics.Stopwatch stopwatch8 = new System.Diagnostics.Stopwatch();
+        public static System.Diagnostics.Stopwatch stopwatch9 = new System.Diagnostics.Stopwatch();
+        public static System.Diagnostics.Stopwatch stopwatch10 = new System.Diagnostics.Stopwatch();
 
         public TaskManager(NeoSystem system)
         {
@@ -50,33 +62,62 @@ namespace Neo.Network.P2P
 
         private void OnNewTasks(InvPayload payload)
         {
-            if (!sessions.TryGetValue(Sender, out TaskSession session))
-                return;
-            if (payload.Type == InventoryType.TX && Blockchain.Singleton.Height < Blockchain.Singleton.HeaderHeight)
+            if (payload.Type == InventoryType.TX) times++;
+            try
             {
-                RequestTasks(session);
-                return;
-            }
-            HashSet<UInt256> hashes = new HashSet<UInt256>(payload.Hashes);
-            hashes.ExceptWith(knownHashes);
-            if (payload.Type == InventoryType.Block)
-                session.AvailableTasks.UnionWith(hashes.Where(p => globalTasks.ContainsKey(p)));
+                stopwatch1.Start();
+                if (!sessions.TryGetValue(Sender, out TaskSession session))
+                    return;
+                stopwatch1.Stop();
+                stopwatch2.Start();
+                if (payload.Type == InventoryType.TX && Blockchain.Singleton.Height < Blockchain.Singleton.HeaderHeight)
+                {
+                    RequestTasks(session);
+                    return;
+                }
+                stopwatch2.Stop();
+                stopwatch3.Start();
+                HashSet<UInt256> hashes = new HashSet<UInt256>(payload.Hashes);
+                stopwatch3.Stop();
+                stopwatch4.Start();
+                hashes.RemoveWhere(q => knownHashes.Contains(q));
+                //hashes.ExceptWith(knownHashes);
+                
+                if (payload.Type == InventoryType.Block)
+                    session.AvailableTasks.UnionWith(hashes.Where(p => globalTasks.ContainsKey(p)));
 
-            hashes.ExceptWith(globalTasks.Keys);
-            if (hashes.Count == 0)
+
+                //hashes.ExceptWith(globalTasks.Keys);
+                hashes.RemoveWhere(q => globalTasks.Keys.Contains(q));
+                if (hashes.Count == 0)
+                {
+                    RequestTasks(session);
+                    return;
+                }
+                stopwatch4.Stop();
+                stopwatch5.Start();
+
+                foreach (UInt256 hash in hashes)
+                {
+                    IncrementGlobalTask(hash);
+                    session.Tasks[hash] = DateTime.UtcNow;
+                }
+                stopwatch5.Stop();
+                stopwatch6.Start();
+
+                foreach (InvPayload group in InvPayload.CreateGroup(payload.Type, hashes.ToArray()))
+                    Sender.Tell(Message.Create(MessageCommand.GetData, group));
+                stopwatch6.Stop();
+            }
+            finally
             {
-                RequestTasks(session);
-                return;
+                stopwatch1.Stop();
+                stopwatch2.Stop();
+                stopwatch3.Stop();
+                stopwatch4.Stop();
+                stopwatch5.Stop();
+                stopwatch6.Stop();
             }
-
-            foreach (UInt256 hash in hashes)
-            {
-                IncrementGlobalTask(hash);
-                session.Tasks[hash] = DateTime.UtcNow;
-            }
-
-            foreach (InvPayload group in InvPayload.CreateGroup(payload.Type, hashes.ToArray()))
-                Sender.Tell(Message.Create(MessageCommand.GetData, group));
         }
 
         protected override void OnReceive(object message)
@@ -126,14 +167,23 @@ namespace Neo.Network.P2P
 
         private void OnTaskCompleted(UInt256 hash)
         {
+            times2++;
+            stopwatch7.Start();
             knownHashes.Add(hash);
             globalTasks.Remove(hash);
+            stopwatch7.Stop();
+            stopwatch8.Start();
             foreach (TaskSession ms in sessions.Values)
                 ms.AvailableTasks.Remove(hash);
+            stopwatch8.Stop();
             if (sessions.TryGetValue(Sender, out TaskSession session))
             {
+                stopwatch9.Start();
                 session.Tasks.Remove(hash);
+                stopwatch9.Stop();
+                stopwatch10.Start();
                 RequestTasks(session);
+                stopwatch10.Stop();
             }
         }
 
@@ -203,7 +253,8 @@ namespace Neo.Network.P2P
             if (session.HasTask) return;
             if (session.AvailableTasks.Count > 0)
             {
-                session.AvailableTasks.ExceptWith(knownHashes);
+                //session.AvailableTasks.ExceptWith(knownHashes);
+                session.AvailableTasks.RemoveWhere(q => knownHashes.Contains(q));
                 session.AvailableTasks.RemoveWhere(p => Blockchain.Singleton.ContainsBlock(p));
                 HashSet<UInt256> hashes = new HashSet<UInt256>(session.AvailableTasks);
                 if (hashes.Count > 0)

@@ -15,7 +15,7 @@ namespace Neo.Network.P2P.Payloads
 {
     public class Transaction : IEquatable<Transaction>, IInventory
     {
-        public const int MaxTransactionSize = 102400;
+        public const int MaxTransactionSize = 10240000;
         public const uint MaxValidUntilBlockIncrement = 2102400;
         /// <summary>
         /// Maximum number of attributes that can be contained within a transaction
@@ -42,6 +42,16 @@ namespace Neo.Network.P2P.Payloads
         public Cosigner[] Cosigners { get; set; }
         public byte[] Script;
         public Witness[] Witnesses { get; set; }
+        public static System.Diagnostics.Stopwatch stopwatch1 = new System.Diagnostics.Stopwatch();
+        public static System.Diagnostics.Stopwatch stopwatch2 = new System.Diagnostics.Stopwatch();
+        public static System.Diagnostics.Stopwatch stopwatch3 = new System.Diagnostics.Stopwatch();
+        public static System.Diagnostics.Stopwatch stopwatch4 = new System.Diagnostics.Stopwatch();
+        public static System.Diagnostics.Stopwatch stopwatch5 = new System.Diagnostics.Stopwatch();
+        public static System.Diagnostics.Stopwatch stopwatch6 = new System.Diagnostics.Stopwatch();
+        public static System.Diagnostics.Stopwatch stopwatch7 = new System.Diagnostics.Stopwatch();
+        public static System.Diagnostics.Stopwatch stopwatch8 = new System.Diagnostics.Stopwatch();
+        public static int times = 0;
+        public static int times2 = 0;
 
         /// <summary>
         /// The <c>NetworkFee</c> for the transaction divided by its <c>Size</c>.
@@ -84,6 +94,15 @@ namespace Neo.Network.P2P.Payloads
             Witnesses = reader.ReadSerializableArray<Witness>();
         }
 
+        internal static Transaction DeserializeFrom(BinaryReader reader)
+        {
+            Transaction transaction = new Transaction();
+
+            transaction.DeserializeUnsigned(reader);
+            transaction.Witnesses = reader.ReadSerializableArray<Witness>();
+            return transaction;
+        }
+
         public void DeserializeUnsigned(BinaryReader reader)
         {
             Version = reader.ReadByte();
@@ -123,29 +142,54 @@ namespace Neo.Network.P2P.Payloads
 
         public UInt160[] GetScriptHashesForVerifying(Snapshot snapshot)
         {
-            var hashes = new HashSet<UInt160> { Sender };
+            /*var hashes = new HashSet<UInt160> { Sender };
             hashes.UnionWith(Cosigners.Select(p => p.Account));
+            return hashes.OrderBy(p => p).ToArray();*/
+            var hashes = new HashSet<UInt160>(Cosigners.Select(p => p.Account));
+            hashes.UnionWith(new HashSet<UInt160> { Sender });
             return hashes.OrderBy(p => p).ToArray();
         }
 
         public virtual bool Reverify(Snapshot snapshot, IEnumerable<Transaction> mempool)
         {
-            if (ValidUntilBlock <= snapshot.Height || ValidUntilBlock > snapshot.Height + MaxValidUntilBlockIncrement)
-                return false;
-            if (NativeContract.Policy.GetBlockedAccounts(snapshot).Intersect(GetScriptHashesForVerifying(snapshot)).Count() > 0)
-                return false;
-            BigInteger balance = NativeContract.GAS.BalanceOf(snapshot, Sender);
-            BigInteger fee = SystemFee + NetworkFee;
-            if (balance < fee) return false;
-            fee += mempool.Where(p => p != this && p.Sender.Equals(Sender)).Select(p => (BigInteger)(p.SystemFee + p.NetworkFee)).Sum();
-            if (balance < fee) return false;
-            UInt160[] hashes = GetScriptHashesForVerifying(snapshot);
-            for (int i = 0; i < hashes.Length; i++)
+            times2++;
+            try
             {
-                if (Witnesses[i].VerificationScript.Length > 0) continue;
-                if (snapshot.Contracts.TryGet(hashes[i]) is null) return false;
+                stopwatch4.Start();
+                if (ValidUntilBlock <= snapshot.Height || ValidUntilBlock > snapshot.Height + MaxValidUntilBlockIncrement)
+                    return false;
+                if (NativeContract.Policy.GetBlockedAccounts(snapshot).Intersect(GetScriptHashesForVerifying(snapshot)).Count() > 0)
+                    return false;
+                stopwatch4.Stop();
+                stopwatch5.Start();
+                BigInteger balance = NativeContract.GAS.BalanceOf(snapshot, Sender);
+                BigInteger fee = SystemFee + NetworkFee;
+                if (balance < fee) return false;
+                stopwatch5.Stop();
+                stopwatch6.Start();
+                fee += mempool.Where(p => p != this && p.Sender.Equals(Sender)).Select(p => (BigInteger)(p.SystemFee + p.NetworkFee)).Sum();
+                if (balance < fee) return false;
+                stopwatch6.Stop();
+                stopwatch7.Start();
+                UInt160[] hashes = GetScriptHashesForVerifying(snapshot);
+                stopwatch7.Stop();
+                stopwatch8.Start();
+                for (int i = 0; i < hashes.Length; i++)
+                {
+                    if (Witnesses[i].VerificationScript.Length > 0) continue;
+                    if (snapshot.Contracts.TryGet(hashes[i]) is null) return false;
+                }
+                stopwatch8.Stop();
+                return true;
             }
-            return true;
+            finally
+            {
+                stopwatch4.Stop();
+                stopwatch5.Stop();
+                stopwatch6.Stop();
+                stopwatch7.Stop();
+                stopwatch8.Stop();
+            }
         }
 
         void ISerializable.Serialize(BinaryWriter writer)
@@ -208,12 +252,27 @@ namespace Neo.Network.P2P.Payloads
 
         public virtual bool Verify(Snapshot snapshot, IEnumerable<Transaction> mempool)
         {
-            if (!Reverify(snapshot, mempool)) return false;
-            int size = Size;
-            if (size > MaxTransactionSize) return false;
-            long net_fee = NetworkFee - size * NativeContract.Policy.GetFeePerByte(snapshot);
-            if (net_fee < 0) return false;
-            return this.VerifyWitnesses(snapshot, net_fee);
+            try
+            {
+                times++;
+                stopwatch1.Start();
+                if (!Reverify(snapshot, mempool)) return false;
+                stopwatch1.Stop();
+                stopwatch2.Start();
+                int size = Size;
+                if (size > MaxTransactionSize) return false;
+                long net_fee = NetworkFee - size * NativeContract.Policy.GetFeePerByte(snapshot);
+                stopwatch2.Stop();
+                stopwatch3.Start();
+                if (net_fee < 0) return false;
+                return this.VerifyWitnesses(snapshot, net_fee);
+            }
+            finally
+            {
+                stopwatch1.Stop();
+                stopwatch2.Stop();
+                stopwatch3.Stop();
+            }
         }
     }
 }

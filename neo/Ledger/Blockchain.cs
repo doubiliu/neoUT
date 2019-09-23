@@ -33,6 +33,13 @@ namespace Neo.Ledger
         public static readonly uint[] GenerationAmount = { 6, 5, 4, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
         public static readonly TimeSpan TimePerBlock = TimeSpan.FromMilliseconds(MillisecondsPerBlock);
         public static readonly ECPoint[] StandbyValidators = ProtocolSettings.Default.StandbyValidators.OfType<string>().Select(p => ECPoint.DecodePoint(p.HexToBytes(), ECCurve.Secp256r1)).ToArray();
+        public static System.Diagnostics.Stopwatch stopwatch1 = new System.Diagnostics.Stopwatch();
+        public static System.Diagnostics.Stopwatch stopwatch2 = new System.Diagnostics.Stopwatch();
+        public static System.Diagnostics.Stopwatch stopwatch3 = new System.Diagnostics.Stopwatch();
+        public static System.Diagnostics.Stopwatch stopwatch4 = new System.Diagnostics.Stopwatch();
+        public static System.Diagnostics.Stopwatch stopwatch5 = new System.Diagnostics.Stopwatch();
+        public static System.Diagnostics.Stopwatch stopwatch6 = new System.Diagnostics.Stopwatch();
+        public static int times = 0;
 
         public static readonly Block GenesisBlock = new Block
         {
@@ -233,6 +240,7 @@ namespace Neo.Ledger
         {
             // Invalidate all the transactions in the memory pool, to avoid any failures when adding new transactions.
             MemPool.InvalidateAllTransactions();
+            System.Console.WriteLine("Filling MemoryPool");
 
             // Add the transactions to the memory pool
             foreach (var tx in transactions)
@@ -366,20 +374,42 @@ namespace Neo.Ledger
 
         private RelayResultReason OnNewTransaction(Transaction transaction, bool relay)
         {
-            if (ContainsTransaction(transaction.Hash))
-                return RelayResultReason.AlreadyExists;
-            if (!MemPool.CanTransactionFitInPool(transaction))
-                return RelayResultReason.OutOfMemory;
-            if (!transaction.Verify(currentSnapshot, MemPool.GetVerifiedTransactions()))
-                return RelayResultReason.Invalid;
-            if (!NativeContract.Policy.CheckPolicy(transaction, currentSnapshot))
-                return RelayResultReason.PolicyFail;
-
-            if (!MemPool.TryAdd(transaction.Hash, transaction))
-                return RelayResultReason.OutOfMemory;
-            if (relay)
-                system.LocalNode.Tell(new LocalNode.RelayDirectly { Inventory = transaction });
-            return RelayResultReason.Succeed;
+            try
+            {
+                stopwatch1.Start();
+                if (ContainsTransaction(transaction.Hash))
+                    return RelayResultReason.AlreadyExists;
+                stopwatch1.Stop();
+                stopwatch2.Start();
+                if (!MemPool.CanTransactionFitInPool(transaction))
+                    return RelayResultReason.OutOfMemory;
+                stopwatch2.Stop();
+                stopwatch3.Start();
+                if (!transaction.Verify(currentSnapshot, MemPool.GetVerifiedTransactions()))
+                    return RelayResultReason.Invalid;
+                stopwatch3.Stop();
+                stopwatch4.Start();
+                if (!NativeContract.Policy.CheckPolicy(transaction, currentSnapshot))
+                    return RelayResultReason.PolicyFail;
+                stopwatch5.Stop();
+                stopwatch6.Start();
+                if (!MemPool.TryAdd(transaction.Hash, transaction))
+                    return RelayResultReason.OutOfMemory;
+                if (relay)
+                    system.LocalNode.Tell(new LocalNode.RelayDirectly { Inventory = transaction });
+                stopwatch6.Stop();
+                times++;
+                return RelayResultReason.Succeed;
+            }
+            finally
+            {
+                stopwatch1.Stop();
+                stopwatch2.Stop();
+                stopwatch3.Stop();
+                stopwatch4.Stop();
+                stopwatch5.Stop();
+                stopwatch6.Stop();
+            }
         }
 
         private void OnPersistCompleted(Block block)
@@ -412,7 +442,8 @@ namespace Neo.Ledger
                         break;
                     }
                 case Transaction transaction:
-                    Sender.Tell(OnNewTransaction(transaction, true));
+                    //Sender.Tell(OnNewTransaction(transaction, true));
+                    Sender.Tell(OnNewTransaction(transaction, false));
                     break;
                 case ConsensusPayload payload:
                     Sender.Tell(OnNewConsensus(payload));

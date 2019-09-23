@@ -29,6 +29,9 @@ namespace Neo.Consensus
         private ICancelable timer_token;
         private DateTime block_received_time;
         private bool started = false;
+        private DateTime lasttime = DateTime.Now;
+        private static System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
+        private static int times = 0;
 
         /// <summary>
         /// This will record the information from last scheduled timer
@@ -123,6 +126,89 @@ namespace Neo.Consensus
                 Block block = context.CreateBlock();
                 Log($"relay block: height={block.Index} hash={block.Hash} tx={block.Transactions.Length}");
                 localNode.Tell(new LocalNode.Relay { Inventory = block });
+                double timespan = (DateTime.Now - lasttime).TotalSeconds;
+                lasttime = DateTime.Now;
+                Console.WriteLine("Time spent since last relay = " + timespan + ", TPS = " + block.Transactions.Length / timespan);
+
+                Console.WriteLine("Time spent in RemoteNode.OnData = " + RemoteNode.stopwatch.Elapsed.TotalSeconds + " and for " + RemoteNode.times + " transactions.");
+
+                Console.WriteLine("Time spent in ProtocolHandler.OnInvMessageReceived = " + ProtocolHandler.stopwatch.Elapsed.TotalSeconds + " and for " + ProtocolHandler.times + " transactions.");
+
+                Console.WriteLine("Time spent in TaskManager.OnNewTasks1 = " + TaskManager.stopwatch1.Elapsed.TotalSeconds + " and for " + TaskManager.times + " transactions.");
+                Console.WriteLine("Time spent in TaskManager.OnNewTasks2 = " + TaskManager.stopwatch2.Elapsed.TotalSeconds + " and for " + TaskManager.times + " transactions.");
+                Console.WriteLine("Time spent in TaskManager.OnNewTasks3 = " + TaskManager.stopwatch3.Elapsed.TotalSeconds + " and for " + TaskManager.times + " transactions.");
+                Console.WriteLine("Time spent in TaskManager.OnNewTasks4 = " + TaskManager.stopwatch4.Elapsed.TotalSeconds + " and for " + TaskManager.times + " transactions.");
+                Console.WriteLine("Time spent in TaskManager.OnNewTasks5 = " + TaskManager.stopwatch5.Elapsed.TotalSeconds + " and for " + TaskManager.times + " transactions.");
+                Console.WriteLine("Time spent in TaskManager.OnNewTasks6 = " + TaskManager.stopwatch6.Elapsed.TotalSeconds + " and for " + TaskManager.times + " transactions.");
+
+                Console.WriteLine("Time spent in RemoteNode.EnqueueMessage = " + RemoteNode.stopwatch1.Elapsed.TotalSeconds + " and for " + RemoteNode.times1 + " transactions.");
+
+                Console.WriteLine("----------------------------------------------------------------------------------");
+                Console.WriteLine("Time spent in TaskManager.OnTaskCompleted7 = " + TaskManager.stopwatch7.Elapsed.TotalSeconds + " and for " + TaskManager.times2 + " transactions.");
+                Console.WriteLine("Time spent in TaskManager.OnTaskCompleted8 = " + TaskManager.stopwatch8.Elapsed.TotalSeconds + " and for " + TaskManager.times2 + " transactions.");
+                Console.WriteLine("Time spent in TaskManager.OnTaskCompleted9 = " + TaskManager.stopwatch9.Elapsed.TotalSeconds + " and for " + TaskManager.times2 + " transactions.");
+                Console.WriteLine("Time spent in TaskManager.OnTaskCompleted10 = " + TaskManager.stopwatch10.Elapsed.TotalSeconds + " and for " + TaskManager.times2 + " transactions.");
+
+                Console.WriteLine("Time spent in ConsensusService.OnTransaction = " + stopwatch.Elapsed.TotalSeconds + " and for " + times + " transactions.");
+
+                Console.WriteLine("Time spent in Blockchain.OnNewTransaction 1 = " + Blockchain.stopwatch1.Elapsed.TotalSeconds + " and for " + Blockchain.times + " transactions.");
+                Console.WriteLine("Time spent in Blockchain.OnNewTransaction 2 = " + Blockchain.stopwatch2.Elapsed.TotalSeconds + " and for " + Blockchain.times + " transactions.");
+                Console.WriteLine("Time spent in Blockchain.OnNewTransaction 3 = " + Blockchain.stopwatch3.Elapsed.TotalSeconds + " and for " + Blockchain.times + " transactions.");
+                Console.WriteLine("Time spent in Blockchain.OnNewTransaction 4 = " + Blockchain.stopwatch4.Elapsed.TotalSeconds + " and for " + Blockchain.times + " transactions.");
+                Console.WriteLine("Time spent in Blockchain.OnNewTransaction 5 = " + Blockchain.stopwatch5.Elapsed.TotalSeconds + " and for " + Blockchain.times + " transactions.");
+                Console.WriteLine("Time spent in Blockchain.OnNewTransaction 6 = " + Blockchain.stopwatch6.Elapsed.TotalSeconds + " and for " + Blockchain.times + " transactions.");
+
+                Console.WriteLine("Time spent in Transaction.Verify 1 = " + Transaction.stopwatch1.Elapsed.TotalSeconds + " and for " + Transaction.times + " transactions.");
+                Console.WriteLine("Time spent in Transaction.Verify 2 = " + Transaction.stopwatch2.Elapsed.TotalSeconds + " and for " + Transaction.times + " transactions.");
+                Console.WriteLine("Time spent in Transaction.Verify 3 = " + Transaction.stopwatch3.Elapsed.TotalSeconds + " and for " + Transaction.times + " transactions.");
+
+                Console.WriteLine("Time spent in Transaction.Reverify 4 = " + Transaction.stopwatch4.Elapsed.TotalSeconds + " and for " + Transaction.times2 + " transactions.");
+                Console.WriteLine("Time spent in Transaction.Reverify 5 = " + Transaction.stopwatch5.Elapsed.TotalSeconds + " and for " + Transaction.times2 + " transactions.");
+                Console.WriteLine("Time spent in Transaction.Reverify 6 = " + Transaction.stopwatch6.Elapsed.TotalSeconds + " and for " + Transaction.times2 + " transactions.");
+                Console.WriteLine("Time spent in Transaction.Reverify 7 = " + Transaction.stopwatch7.Elapsed.TotalSeconds + " and for " + Transaction.times2 + " transactions.");
+                Console.WriteLine("Time spent in Transaction.Reverify 8 = " + Transaction.stopwatch8.Elapsed.TotalSeconds + " and for " + Transaction.times2 + " transactions.");
+
+                Console.WriteLine("Neo.SmartContract.Helper.VerifyWitnesses 1 = " + Neo.SmartContract.Helper.stopwatch1.Elapsed.TotalSeconds + " and for " + Neo.SmartContract.Helper.times + " transactions.");
+                Console.WriteLine("Neo.SmartContract.Helper.VerifyWitnesses 2 = " + Neo.SmartContract.Helper.stopwatch2.Elapsed.TotalSeconds + " and for " + Neo.SmartContract.Helper.times + " transactions.");
+                Console.WriteLine("Neo.SmartContract.Helper.VerifyWitnesses 3 = " + Neo.SmartContract.Helper.stopwatch3.Elapsed.TotalSeconds + " and for " + Neo.SmartContract.Helper.times + " transactions.");
+
+                stopwatch.Reset();
+                RemoteNode.stopwatch.Reset();
+                ProtocolHandler.stopwatch.Reset();
+                TaskManager.stopwatch1.Reset();
+                TaskManager.stopwatch2.Reset();
+                TaskManager.stopwatch3.Reset();
+                TaskManager.stopwatch4.Reset();
+                TaskManager.stopwatch5.Reset();
+                TaskManager.stopwatch6.Reset();
+                Blockchain.stopwatch1.Reset();
+                Blockchain.stopwatch2.Reset();
+                Blockchain.stopwatch3.Reset();
+                Blockchain.stopwatch4.Reset();
+                Blockchain.stopwatch5.Reset();
+                Blockchain.stopwatch6.Reset();
+                Transaction.stopwatch1.Reset();
+                Transaction.stopwatch2.Reset();
+                Transaction.stopwatch3.Reset();
+                Transaction.stopwatch4.Reset();
+                Transaction.stopwatch5.Reset();
+                Transaction.stopwatch6.Reset();
+                Transaction.stopwatch7.Reset();
+                Transaction.stopwatch8.Reset();
+                SmartContract.Helper.stopwatch1.Reset();
+                SmartContract.Helper.stopwatch2.Reset();
+                SmartContract.Helper.stopwatch3.Reset();
+
+                times = 0;
+                RemoteNode.times = 0;
+                RemoteNode.times1 = 0;
+                ProtocolHandler.times = 0;
+                TaskManager.times = 0;
+                TaskManager.times2 = 0;
+                Blockchain.times = 0;
+                Transaction.times = 0;
+                Transaction.times2 = 0;
+                SmartContract.Helper.times = 0;
             }
         }
 
@@ -583,11 +669,20 @@ namespace Neo.Consensus
 
         private void OnTransaction(Transaction transaction)
         {
-            if (!context.IsBackup || context.NotAcceptingPayloadsDueToViewChanging || !context.RequestSentOrReceived || context.ResponseSent || context.BlockSent)
-                return;
-            if (context.Transactions.ContainsKey(transaction.Hash)) return;
-            if (!context.TransactionHashes.Contains(transaction.Hash)) return;
-            AddTransaction(transaction, true);
+            try
+            {
+                times++;
+                stopwatch.Start();
+                if (!context.IsBackup || context.NotAcceptingPayloadsDueToViewChanging || !context.RequestSentOrReceived || context.ResponseSent || context.BlockSent)
+                    return;
+                if (context.Transactions.ContainsKey(transaction.Hash)) return;
+                if (!context.TransactionHashes.Contains(transaction.Hash)) return;
+                AddTransaction(transaction, true);
+            }
+            finally
+            {
+                stopwatch.Stop();
+            }
         }
 
         protected override void PostStop()

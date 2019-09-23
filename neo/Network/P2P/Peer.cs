@@ -195,6 +195,7 @@ namespace Neo.Network.P2P
                 Context.Watch(connection);
                 Sender.Tell(new Tcp.Register(connection));
                 ConnectedPeers.TryAdd(connection, remote);
+                Console.WriteLine("TcpConnected: " + remote.ToString() + "Sender" + Sender.ToString());
             }
         }
 
@@ -245,6 +246,7 @@ namespace Neo.Network.P2P
             {
                 ConnectedAddresses[remote.Address] = count + 1;
                 Context.ActorOf(ProtocolProps(ws, remote, local), $"connection_{Guid.NewGuid()}");
+                Console.WriteLine("WsConnected: " + remote.ToString());
             }
         }
 

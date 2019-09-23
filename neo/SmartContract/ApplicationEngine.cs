@@ -12,7 +12,7 @@ namespace Neo.SmartContract
         public static event EventHandler<NotifyEventArgs> Notify;
         public static event EventHandler<LogEventArgs> Log;
 
-        public const long GasFree = 0;
+        public const long GasFree = 1000000;
         private readonly long gas_amount;
         private readonly bool testMode;
         private readonly List<NotifyEventArgs> notifications = new List<NotifyEventArgs>();

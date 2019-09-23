@@ -17,6 +17,10 @@ namespace Neo.SmartContract
 {
     public static class Helper
     {
+        public static int times = 0;
+        public static System.Diagnostics.Stopwatch stopwatch1 = new System.Diagnostics.Stopwatch();
+        public static System.Diagnostics.Stopwatch stopwatch2 = new System.Diagnostics.Stopwatch();
+        public static System.Diagnostics.Stopwatch stopwatch3 = new System.Diagnostics.Stopwatch();
         public static StackItem DeserializeStackItem(this byte[] data, uint maxArraySize, uint maxItemSize)
         {
             using (MemoryStream ms = new MemoryStream(data, false))
@@ -248,39 +252,55 @@ namespace Neo.SmartContract
 
         internal static bool VerifyWitnesses(this IVerifiable verifiable, Snapshot snapshot, long gas)
         {
-            if (gas < 0) return false;
-
-            UInt160[] hashes;
+            times++;
             try
             {
-                hashes = verifiable.GetScriptHashesForVerifying(snapshot);
+                stopwatch1.Start();
+                if (gas < 0) return false;
+
+                UInt160[] hashes;
+                try
+                {
+                    hashes = verifiable.GetScriptHashesForVerifying(snapshot);
+                }
+                catch (InvalidOperationException)
+                {
+                    return false;
+                }
+                stopwatch1.Stop();
+                if (hashes.Length != verifiable.Witnesses.Length) return false;
+                for (int i = 0; i < hashes.Length; i++)
+                {
+                    stopwatch2.Start();
+                    byte[] verification = verifiable.Witnesses[i].VerificationScript;
+                    if (verification.Length == 0)
+                    {
+                        verification = snapshot.Contracts.TryGet(hashes[i])?.Script;
+                        if (verification is null) return false;
+                    }
+                    else
+                    {
+                        if (hashes[i] != verifiable.Witnesses[i].ScriptHash) return false;
+                    }
+                    stopwatch2.Stop();
+                    stopwatch3.Start();
+                    using (ApplicationEngine engine = new ApplicationEngine(TriggerType.Verification, verifiable, snapshot, gas))
+                    {
+                        engine.LoadScript(verification);
+                        engine.LoadScript(verifiable.Witnesses[i].InvocationScript);
+                        if (engine.Execute().HasFlag(VMState.FAULT)) return false;
+                        if (engine.ResultStack.Count != 1 || !engine.ResultStack.Pop().GetBoolean()) return false;
+                    }
+                    stopwatch3.Stop();
+                }
+                return true;
             }
-            catch (InvalidOperationException)
+            finally
             {
-                return false;
+                stopwatch1.Stop();
+                stopwatch2.Stop();
+                stopwatch3.Stop();
             }
-            if (hashes.Length != verifiable.Witnesses.Length) return false;
-            for (int i = 0; i < hashes.Length; i++)
-            {
-                byte[] verification = verifiable.Witnesses[i].VerificationScript;
-                if (verification.Length == 0)
-                {
-                    verification = snapshot.Contracts.TryGet(hashes[i])?.Script;
-                    if (verification is null) return false;
-                }
-                else
-                {
-                    if (hashes[i] != verifiable.Witnesses[i].ScriptHash) return false;
-                }
-                using (ApplicationEngine engine = new ApplicationEngine(TriggerType.Verification, verifiable, snapshot, gas))
-                {
-                    engine.LoadScript(verification);
-                    engine.LoadScript(verifiable.Witnesses[i].InvocationScript);
-                    if (engine.Execute().HasFlag(VMState.FAULT)) return false;
-                    if (engine.ResultStack.Count != 1 || !engine.ResultStack.Pop().GetBoolean()) return false;
-                }
-            }
-            return true;
         }
     }
 }

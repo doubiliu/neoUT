@@ -9,7 +9,7 @@ namespace Neo.Network.P2P
 {
     public class Message : ISerializable
     {
-        public const int PayloadMaxSize = 0x02000000;
+        public const int PayloadMaxSize = 0x070000000;
         private const int CompressionMinSize = 128;
         private const int CompressionThreshold = 64;
 

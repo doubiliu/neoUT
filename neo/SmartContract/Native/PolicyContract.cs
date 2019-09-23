@@ -48,15 +48,17 @@ namespace Neo.SmartContract.Native
             if (!base.Initialize(engine)) return false;
             engine.Snapshot.Storages.Add(CreateStorageKey(Prefix_MaxBlockSize), new StorageItem
             {
-                Value = BitConverter.GetBytes(1024u * 256u)
+                //Value = BitConverter.GetBytes(1024u * 256u)
+                Value = BitConverter.GetBytes(uint.MaxValue)
             });
             engine.Snapshot.Storages.Add(CreateStorageKey(Prefix_MaxTransactionsPerBlock), new StorageItem
             {
-                Value = BitConverter.GetBytes(512u)
+                Value = BitConverter.GetBytes(5120000000u)
             });
             engine.Snapshot.Storages.Add(CreateStorageKey(Prefix_FeePerByte), new StorageItem
             {
-                Value = BitConverter.GetBytes(1000L)
+                //Value = BitConverter.GetBytes(1000L)
+                Value = BitConverter.GetBytes(0L)
             });
             engine.Snapshot.Storages.Add(CreateStorageKey(Prefix_BlockedAccounts), new StorageItem
             {

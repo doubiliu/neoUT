@@ -8,7 +8,7 @@ namespace Neo.Network.P2P.Payloads
 {
     public class InvPayload : ISerializable
     {
-        public const int MaxHashesCount = 500;
+        public const int MaxHashesCount = 5000000;
 
         public InventoryType Type;
         public UInt256[] Hashes;

@@ -196,6 +196,7 @@ namespace Neo.Ledger
         public IEnumerable<Transaction> GetSortedVerifiedTransactions()
         {
             _txRwLock.EnterReadLock();
+            System.Console.WriteLine("_sortedTransactions size=" + _sortedTransactions.Count());
             try
             {
                 return _sortedTransactions.Reverse().Select(p => p.Tx).ToArray();

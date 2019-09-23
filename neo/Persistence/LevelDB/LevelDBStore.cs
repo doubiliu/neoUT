@@ -10,6 +10,14 @@ namespace Neo.Persistence.LevelDB
     public class LevelDBStore : Store, IDisposable
     {
         private readonly DB db;
+        private bool changeTheme = false;
+        public DbCache<UInt256, TrimmedBlock> blocks;
+        public DbCache<UInt160, ContractState> contracts;
+        public DbCache<StorageKey, StorageItem> storages;
+        public DbCache<UInt256, TransactionState> transactions;
+        public DbCache<UInt32Wrapper, HeaderHashList> headerHashList;
+        private DbMetaDataCache<HashIndexState> blockHashIndex;
+        private DbMetaDataCache<HashIndexState> headerHashIndex;
 
         public LevelDBStore(string path)
         {
@@ -27,6 +35,17 @@ namespace Neo.Persistence.LevelDB
             }
             db.Put(WriteOptions.Default, SliceBuilder.Begin(Prefixes.SYS_Version), Assembly.GetExecutingAssembly().GetName().Version.ToString());
             db.Write(WriteOptions.Default, batch);
+
+            if (changeTheme)
+            {
+                blocks = new DbCache<UInt256, TrimmedBlock>(db, null, null, Prefixes.DATA_Block);
+                contracts = new DbCache<UInt160, ContractState>(db, null, null, Prefixes.ST_Contract);
+                storages = new DbCache<StorageKey, StorageItem>(db, null, null, Prefixes.ST_Storage);
+                transactions = new DbCache<UInt256, TransactionState>(db, null, null, Prefixes.DATA_Transaction);
+                headerHashList = new DbCache<UInt32Wrapper, HeaderHashList>(db, null, null, Prefixes.IX_HeaderHashList);
+                blockHashIndex = new DbMetaDataCache<HashIndexState>(db, null, null, Prefixes.IX_CurrentBlock);
+                headerHashIndex = new DbMetaDataCache<HashIndexState>(db, null, null, Prefixes.IX_CurrentHeader);
+            }
         }
 
         public void Dispose()
@@ -43,12 +62,18 @@ namespace Neo.Persistence.LevelDB
 
         public override DataCache<UInt256, TrimmedBlock> GetBlocks()
         {
-            return new DbCache<UInt256, TrimmedBlock>(db, null, null, Prefixes.DATA_Block);
+            if (changeTheme)
+                return blocks;
+            else
+                return new DbCache<UInt256, TrimmedBlock>(db, null, null, Prefixes.DATA_Block);
         }
 
         public override DataCache<UInt160, ContractState> GetContracts()
         {
-            return new DbCache<UInt160, ContractState>(db, null, null, Prefixes.ST_Contract);
+            if (changeTheme)
+                return contracts;
+            else
+                return new DbCache<UInt160, ContractState>(db, null, null, Prefixes.ST_Contract);
         }
 
         public override Snapshot GetSnapshot()
@@ -58,27 +83,42 @@ namespace Neo.Persistence.LevelDB
 
         public override DataCache<StorageKey, StorageItem> GetStorages()
         {
-            return new DbCache<StorageKey, StorageItem>(db, null, null, Prefixes.ST_Storage);
+            if (changeTheme)
+                return storages;
+            else
+                return new DbCache<StorageKey, StorageItem>(db, null, null, Prefixes.ST_Storage);
         }
 
         public override DataCache<UInt256, TransactionState> GetTransactions()
         {
-            return new DbCache<UInt256, TransactionState>(db, null, null, Prefixes.DATA_Transaction);
+            if (changeTheme)
+                return transactions;
+            else
+                return new DbCache<UInt256, TransactionState>(db, null, null, Prefixes.DATA_Transaction);
         }
 
         public override DataCache<UInt32Wrapper, HeaderHashList> GetHeaderHashList()
         {
-            return new DbCache<UInt32Wrapper, HeaderHashList>(db, null, null, Prefixes.IX_HeaderHashList);
+            if (changeTheme)
+                return headerHashList;
+            else
+                return new DbCache<UInt32Wrapper, HeaderHashList>(db, null, null, Prefixes.IX_HeaderHashList);
         }
 
         public override MetaDataCache<HashIndexState> GetBlockHashIndex()
         {
-            return new DbMetaDataCache<HashIndexState>(db, null, null, Prefixes.IX_CurrentBlock);
+            if (changeTheme)
+                return blockHashIndex;
+            else
+                return new DbMetaDataCache<HashIndexState>(db, null, null, Prefixes.IX_CurrentBlock);
         }
 
         public override MetaDataCache<HashIndexState> GetHeaderHashIndex()
         {
-            return new DbMetaDataCache<HashIndexState>(db, null, null, Prefixes.IX_CurrentHeader);
+            if (changeTheme)
+                return headerHashIndex;
+            else
+                return new DbMetaDataCache<HashIndexState>(db, null, null, Prefixes.IX_CurrentHeader);
         }
 
         public override void Put(byte[] key, byte[] value)
