@@ -1,9 +1,9 @@
 ﻿using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Neo.IO;
 using Neo.Ledger;
 using Neo.Network.P2P.Payloads;
 using Neo.Persistence;
-using System.IO;
 
 namespace Neo.UnitTests.Ledger
 {
@@ -16,14 +16,7 @@ namespace Neo.UnitTests.Ledger
 
         public static TestBlock Cast(Block input)
         {
-            TestBlock block = new TestBlock();
-            MemoryStream stream = new MemoryStream();
-            BinaryWriter writer = new BinaryWriter(stream);
-            BinaryReader reader = new BinaryReader(stream);
-            input.Serialize(writer);
-            stream.Seek(0, SeekOrigin.Begin);
-            block.Deserialize(reader);
-            return block;
+            return input.ToArray().AsSerializable<TestBlock>();
         }
     }
 
@@ -36,16 +29,10 @@ namespace Neo.UnitTests.Ledger
 
         public static TestHeader Cast(Header input)
         {
-            TestHeader header = new TestHeader();
-            MemoryStream stream = new MemoryStream();
-            BinaryWriter writer = new BinaryWriter(stream);
-            BinaryReader reader = new BinaryReader(stream);
-            input.Serialize(writer);
-            stream.Seek(0, SeekOrigin.Begin);
-            header.Deserialize(reader);
-            return header;
+            return input.ToArray().AsSerializable<TestHeader>();
         }
     }
+
     [TestClass]
     public class UT_Blockchain
     {
@@ -76,7 +63,7 @@ namespace Neo.UnitTests.Ledger
         [TestMethod]
         public void TestContainsTransaction()
         {
-            Blockchain.Singleton.ContainsTransaction(UInt256.Zero).Should().BeTrue();
+            Blockchain.Singleton.ContainsTransaction(UInt256.Zero).Should().BeFalse();
             Blockchain.Singleton.ContainsTransaction(txSample.Hash).Should().BeTrue();
         }
 
@@ -108,7 +95,7 @@ namespace Neo.UnitTests.Ledger
         [TestMethod]
         public void TestGetTransaction()
         {
-            Blockchain.Singleton.GetTransaction(UInt256.Zero).Should().NotBeNull();
+            Blockchain.Singleton.GetTransaction(UInt256.Zero).Should().BeNull();
             Blockchain.Singleton.GetTransaction(txSample.Hash).Should().NotBeNull();
         }
     }

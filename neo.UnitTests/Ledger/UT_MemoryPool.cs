@@ -8,8 +8,7 @@ using Neo.Ledger;
 using Neo.Network.P2P.Payloads;
 using Neo.Persistence;
 using Neo.Plugins;
-using Neo.SmartContract;
-using Neo.VM;
+using Neo.SmartContract.Native;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -19,17 +18,9 @@ namespace Neo.UnitTests.Ledger
 {
     internal class TestIMemoryPoolTxObserverPlugin : Plugin, IMemoryPoolTxObserverPlugin
     {
-        public override void Configure()
-        {
-        }
-
-        public void TransactionAdded(Transaction tx)
-        {
-        }
-
-        public void TransactionsRemoved(MemoryPoolTxRemovalReason reason, IEnumerable<Transaction> transactions)
-        {
-        }
+        public override void Configure() { }
+        public void TransactionAdded(Transaction tx) { }
+        public void TransactionsRemoved(MemoryPoolTxRemovalReason reason, IEnumerable<Transaction> transactions) { }
     }
 
     [TestClass]
@@ -100,8 +91,10 @@ namespace Neo.UnitTests.Ledger
             return mock.Object;
         }
 
-        private Transaction CreateTransaction()
+        private Transaction CreateTransaction(long fee = -1)
         {
+            if (fee != -1)
+                return CreateTransactionWithFee(fee);
             return CreateTransactionWithFee(LongRandom(100000, 100000000, TestUtils.TestRandom));
         }
 
@@ -116,6 +109,10 @@ namespace Neo.UnitTests.Ledger
             Console.WriteLine($"created {count} tx");
         }
 
+        private void AddTransaction(Transaction txToAdd)
+        {
+            _unit.TryAdd(txToAdd.Hash, txToAdd);
+        }
 
         [TestMethod]
         public void CapacityTest()
@@ -173,7 +170,7 @@ namespace Neo.UnitTests.Ledger
             _unit.UnverifiedSortedTxCount.ShouldBeEquivalentTo(0);
         }
 
-        private void verifyTransactionsSortedDescending(IEnumerable<Transaction> transactions)
+        private void VerifyTransactionsSortedDescending(IEnumerable<Transaction> transactions)
         {
             Transaction lastTransaction = null;
             foreach (var tx in transactions)
@@ -204,7 +201,7 @@ namespace Neo.UnitTests.Ledger
             var sortedVerifiedTxs = _unit.GetSortedVerifiedTransactions().ToList();
             // verify all 100 transactions are returned in sorted order
             sortedVerifiedTxs.Count.ShouldBeEquivalentTo(100);
-            verifyTransactionsSortedDescending(sortedVerifiedTxs);
+            VerifyTransactionsSortedDescending(sortedVerifiedTxs);
 
             // move all to unverified
             var block = new Block { Transactions = new Transaction[0] };
@@ -219,7 +216,7 @@ namespace Neo.UnitTests.Ledger
                 _unit.GetVerifiedAndUnverifiedTransactions(out var sortedVerifiedTransactions, out var sortedUnverifiedTransactions);
                 sortedVerifiedTransactions.Count().ShouldBeEquivalentTo(0);
                 var sortedUnverifiedArray = sortedUnverifiedTransactions.ToArray();
-                verifyTransactionsSortedDescending(sortedUnverifiedArray);
+                VerifyTransactionsSortedDescending(sortedUnverifiedArray);
                 var maxTransaction = sortedUnverifiedArray.First();
                 var minTransaction = sortedUnverifiedArray.Last();
 
@@ -349,20 +346,42 @@ namespace Neo.UnitTests.Ledger
             var s = Blockchain.Singleton.Height;
             _unit = new MemoryPool(TheNeoSystem, 600);
             _unit.LoadPolicy(TestBlockchain.GetStore().GetSnapshot());
-            AddTransactions(2);
+            AddTransaction(CreateTransaction(100000001));
+            AddTransaction(CreateTransaction(100000001));
+            AddTransaction(CreateTransaction(100000001));
+            AddTransaction(CreateTransaction(1));
+            _unit.VerifiedCount.Should().Be(4);
+            _unit.UnVerifiedCount.Should().Be(0);
+
             _unit.InvalidateVerifiedTransactions();
-            AddTransactions(513);
-            var result = _unit.ReVerifyTopUnverifiedTransactionsIfNeeded(10, Blockchain.Singleton.GetSnapshot());
+            _unit.VerifiedCount.Should().Be(0);
+            _unit.UnVerifiedCount.Should().Be(4);
+
+            AddTransactions(511); // Max per block currently is 512
+            _unit.VerifiedCount.Should().Be(511);
+            _unit.UnVerifiedCount.Should().Be(4);
+
+            var result = _unit.ReVerifyTopUnverifiedTransactionsIfNeeded(1, Blockchain.Singleton.GetSnapshot());
+            result.Should().BeTrue();
+            _unit.VerifiedCount.Should().Be(512);
+            _unit.UnVerifiedCount.Should().Be(3);
+
+            result = _unit.ReVerifyTopUnverifiedTransactionsIfNeeded(2, Blockchain.Singleton.GetSnapshot());
+            result.Should().BeTrue();
             _unit.VerifiedCount.Should().Be(514);
             _unit.UnVerifiedCount.Should().Be(1);
-            result.Should().BeTrue();
+
+            result = _unit.ReVerifyTopUnverifiedTransactionsIfNeeded(3, Blockchain.Singleton.GetSnapshot());
+            result.Should().BeFalse();
+            _unit.VerifiedCount.Should().Be(515);
+            _unit.UnVerifiedCount.Should().Be(0);
         }
 
         [TestMethod]
         public void TestTryAdd()
         {
             var tx1 = CreateTransaction();
-            _unit.TryAdd(tx1.Hash, tx1);
+            _unit.TryAdd(tx1.Hash, tx1).Should().BeTrue();
             _unit.TryAdd(tx1.Hash, tx1).Should().BeFalse();
             _unit2.TryAdd(tx1.Hash, tx1).Should().BeFalse();
         }
@@ -387,8 +406,8 @@ namespace Neo.UnitTests.Ledger
         public void TestUpdatePoolForBlockPersisted()
         {
             var mockSnapshot = new Mock<Snapshot>();
-            byte[] transactionsPerBlock = { 0x18, 0x00, 0x00, 0x00 };
-            byte[] feePerByte = { 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00 };
+            byte[] transactionsPerBlock = { 0x18, 0x00, 0x00, 0x00 }; // 24
+            byte[] feePerByte = { 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00 }; // 1048576
             StorageItem item1 = new StorageItem
             {
                 Value = transactionsPerBlock
@@ -400,16 +419,8 @@ namespace Neo.UnitTests.Ledger
             var myDataCache = new MyDataCache<StorageKey, StorageItem>();
             var key1 = CreateStorageKey(Prefix_MaxTransactionsPerBlock);
             var key2 = CreateStorageKey(Prefix_FeePerByte);
-            var ServiceHash = "Neo.Native.Policy".ToInteropMethodHash();
-            byte[] script = null;
-            using (ScriptBuilder sb = new ScriptBuilder())
-            {
-                sb.EmitSysCall(ServiceHash);
-                script = sb.ToArray();
-            }
-            var Hash = script.ToScriptHash();
-            key1.ScriptHash = Hash;
-            key2.ScriptHash = Hash;
+            key1.ScriptHash = NativeContract.Policy.Hash;
+            key2.ScriptHash = NativeContract.Policy.Hash;
             myDataCache.Add(key1, item1);
             myDataCache.Add(key2, item2);
             mockSnapshot.SetupGet(p => p.Storages).Returns(myDataCache);
@@ -418,10 +429,6 @@ namespace Neo.UnitTests.Ledger
             var tx2 = CreateTransaction();
             Transaction[] transactions = { tx1, tx2 };
             _unit.TryAdd(tx1.Hash, tx1);
-
-            //TODO comment tx3 test until MemoryPool is isolated.
-            //var tx3 = CreateTransaction();
-            //_unit.TryAdd(tx3.Hash, tx3);
 
             var block = new Block { Transactions = transactions };
 
