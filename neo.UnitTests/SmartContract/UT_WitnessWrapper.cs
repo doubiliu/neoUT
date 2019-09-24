@@ -17,7 +17,7 @@ namespace Neo.UnitTests.SmartContract
         public void TestCreate()
         {
             var mockSnapshot = new Mock<Snapshot>();
-            var myDataCache = new MyDataCache<UInt160, ContractState>();
+            var myDataCache = new TestDataCache<UInt160, ContractState>();
             ContractState item1 = new ContractState
             {
                 Script = new byte[] { 0x00 }

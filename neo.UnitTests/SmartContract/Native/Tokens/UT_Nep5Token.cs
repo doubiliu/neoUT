@@ -5,7 +5,6 @@ using Neo.Ledger;
 using Neo.Persistence;
 using Neo.SmartContract;
 using Neo.SmartContract.Native.Tokens;
-using Neo.UnitTests.Ledger;
 using Neo.VM;
 using System;
 using System.Numerics;
@@ -21,7 +20,7 @@ namespace Neo.UnitTests.SmartContract.Native.Tokens
         public void TestTotalSupply()
         {
             var mockSnapshot = new Mock<Snapshot>();
-            var myDataCache = new MyDataCache<StorageKey, StorageItem>();
+            var myDataCache = new TestDataCache<StorageKey, StorageItem>();
             StorageItem item = new StorageItem
             {
                 Value = new byte[] { 0x01 }
@@ -50,7 +49,7 @@ namespace Neo.UnitTests.SmartContract.Native.Tokens
         public void TestTotalSupplyDecimal()
         {
             var mockSnapshot = new Mock<Snapshot>();
-            var myDataCache = new MyDataCache<StorageKey, StorageItem>();
+            var myDataCache = new TestDataCache<StorageKey, StorageItem>();
 
             TestNep5Token test = new TestNep5Token();
             BigInteger totalSupply = 100_000_000;
