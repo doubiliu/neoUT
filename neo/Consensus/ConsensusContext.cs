@@ -78,6 +78,7 @@ namespace Neo.Consensus
 
         public Block CreateBlock()
         {
+            Console.WriteLine("--start to create block--");
             Contract contract = Contract.CreateMultiSigContract(M, Validators);
             ContractParametersContext sc = new ContractParametersContext(Block);
             for (int i = 0, j = 0; i < Validators.Length && j < M; i++)
@@ -88,6 +89,7 @@ namespace Neo.Consensus
             }
             Block.Witness = sc.GetWitnesses()[0];
             Block.Transactions = TransactionHashes.Select(p => Transactions[p]).ToArray();
+            Console.WriteLine($"--TX Number in block {Block.Transactions.Length}--");
             return Block;
         }
 

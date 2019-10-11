@@ -32,8 +32,8 @@ namespace Neo.Network.P2P
 
         private readonly UInt256 HeaderTaskHash = UInt256.Zero;
         private bool HasHeaderTask => globalTasks.ContainsKey(HeaderTaskHash);
-        public static int times = 0;
-        public static int times2 = 0;
+        public static int invTxCount = 0;
+        public static int txReceiptFinishCount = 0;
         public static System.Diagnostics.Stopwatch stopwatch1 = new System.Diagnostics.Stopwatch();
         public static System.Diagnostics.Stopwatch stopwatch2 = new System.Diagnostics.Stopwatch();
         public static System.Diagnostics.Stopwatch stopwatch3 = new System.Diagnostics.Stopwatch();
@@ -62,7 +62,7 @@ namespace Neo.Network.P2P
 
         private void OnNewTasks(InvPayload payload)
         {
-            if (payload.Type == InventoryType.TX) times++;
+            if (payload.Type == InventoryType.TX) invTxCount++;
             try
             {
                 stopwatch1.Start();
@@ -167,7 +167,7 @@ namespace Neo.Network.P2P
 
         private void OnTaskCompleted(UInt256 hash)
         {
-            times2++;
+            txReceiptFinishCount++;
             stopwatch7.Start();
             knownHashes.Add(hash);
             globalTasks.Remove(hash);

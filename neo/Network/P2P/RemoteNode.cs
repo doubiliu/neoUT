@@ -32,8 +32,9 @@ namespace Neo.Network.P2P
         public VersionPayload Version { get; private set; }
         public uint LastBlockIndex { get; private set; } = 0;
         public bool IsFullNode { get; private set; } = false;
-        public static int times = 0;
-        public static int times1 = 0;
+        public static int invTimes = 0;
+        public static int getDataTimes = 0;
+        public static int sendInvCount = 0;
         public static System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
         public static System.Diagnostics.Stopwatch stopwatch1 = new System.Diagnostics.Stopwatch();
 
@@ -75,9 +76,13 @@ namespace Neo.Network.P2P
 
         private void EnqueueMessage(Message message)
         {
+            if (message.Command == MessageCommand.Inv)
+            {
+                sendInvCount++;
+            }
             if (message.Command == MessageCommand.GetData)
             {
-                times1++;
+                getDataTimes++;
                 stopwatch1.Start();
             }
             bool is_single = false;
@@ -128,7 +133,7 @@ namespace Neo.Network.P2P
 
             for (Message message = TryParseMessage(); message != null; message = TryParseMessage())
             {
-                if (message.Command == MessageCommand.Inv) times++;
+                if (message.Command == MessageCommand.Inv) invTimes++;
                 protocol.Tell(message);
             }
             stopwatch.Stop();

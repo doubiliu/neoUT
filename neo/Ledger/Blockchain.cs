@@ -39,7 +39,7 @@ namespace Neo.Ledger
         public static System.Diagnostics.Stopwatch stopwatch4 = new System.Diagnostics.Stopwatch();
         public static System.Diagnostics.Stopwatch stopwatch5 = new System.Diagnostics.Stopwatch();
         public static System.Diagnostics.Stopwatch stopwatch6 = new System.Diagnostics.Stopwatch();
-        public static int times = 0;
+        public static int receiptTxCount = 0;
 
         public static readonly Block GenesisBlock = new Block
         {
@@ -376,29 +376,37 @@ namespace Neo.Ledger
         {
             try
             {
+               // Console.WriteLine("1. blockchain received a transaction");
                 stopwatch1.Start();
                 if (ContainsTransaction(transaction.Hash))
                     return RelayResultReason.AlreadyExists;
                 stopwatch1.Stop();
                 stopwatch2.Start();
+               // Console.WriteLine("2. blockchain check fitinpool");
                 if (!MemPool.CanTransactionFitInPool(transaction))
                     return RelayResultReason.OutOfMemory;
                 stopwatch2.Stop();
                 stopwatch3.Start();
+                //Console.WriteLine("3. blockchain verify transaction");
                 if (!transaction.Verify(currentSnapshot, MemPool.GetVerifiedTransactions()))
                     return RelayResultReason.Invalid;
                 stopwatch3.Stop();
                 stopwatch4.Start();
+                //Console.WriteLine("4. blockchain check policy");
                 if (!NativeContract.Policy.CheckPolicy(transaction, currentSnapshot))
                     return RelayResultReason.PolicyFail;
                 stopwatch5.Stop();
                 stopwatch6.Start();
+                //Console.WriteLine("5. blockchain tryadd transaction");
                 if (!MemPool.TryAdd(transaction.Hash, transaction))
                     return RelayResultReason.OutOfMemory;
                 if (relay)
+                {
+                   // Console.WriteLine("6. Relay transaction");
                     system.LocalNode.Tell(new LocalNode.RelayDirectly { Inventory = transaction });
+                }
                 stopwatch6.Stop();
-                times++;
+                receiptTxCount++;
                 return RelayResultReason.Succeed;
             }
             finally
@@ -442,8 +450,7 @@ namespace Neo.Ledger
                         break;
                     }
                 case Transaction transaction:
-                    //Sender.Tell(OnNewTransaction(transaction, true));
-                    Sender.Tell(OnNewTransaction(transaction, false));
+                    Sender.Tell(OnNewTransaction(transaction, true));
                     break;
                 case ConsensusPayload payload:
                     Sender.Tell(OnNewConsensus(payload));

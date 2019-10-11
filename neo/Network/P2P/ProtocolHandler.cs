@@ -27,7 +27,7 @@ namespace Neo.Network.P2P
         private bool verack = false;
         private BloomFilter bloom_filter;
         public static System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
-        public static int times = 0;
+        public static int invTxCount = 0;
 
         public ProtocolHandler(NeoSystem system)
         {
@@ -259,7 +259,7 @@ namespace Neo.Network.P2P
                             hashes = hashes.Where(p => !snapshot.ContainsBlock(p)).ToArray();
                         break;
                     case InventoryType.TX:
-                        times++;
+                        invTxCount++;
                         using (Snapshot snapshot = Blockchain.Singleton.GetSnapshot())
                             hashes = hashes.Where(p => !snapshot.ContainsTransaction(p)).ToArray();
                         break;

@@ -1,4 +1,5 @@
 using Akka.Actor;
+using Akka.Event;
 using Akka.IO;
 using System;
 using System.Net;
@@ -24,6 +25,14 @@ namespace Neo.Network.P2P
         public IPEndPoint Remote { get; }
         public IPEndPoint Local { get; }
 
+        public static long totalTcpReceiveCount = 0;
+        public static long totalTcpSendCount = 0;
+        public long tcpReceiveCount = 0;
+        public long tcpSendCount = 0;
+        protected ILoggingAdapter Log { get; } = Context.GetLogger();
+        private ICancelable tps_timer;
+        internal class TPSTimer { }
+
         private ICancelable timer;
         private readonly IActorRef tcp;
         private readonly WebSocket ws;
@@ -33,6 +42,7 @@ namespace Neo.Network.P2P
             this.Remote = remote;
             this.Local = local;
             this.timer = Context.System.Scheduler.ScheduleTellOnceCancelable(TimeSpan.FromSeconds(connectionTimeoutLimitStart), Self, Timer.Instance, ActorRefs.NoSender);
+            this.tps_timer = Context.System.Scheduler.ScheduleTellRepeatedlyCancelable(TimeSpan.FromSeconds(0), TimeSpan.FromSeconds(15), Self, new TPSTimer(), Self);
             switch (connection)
             {
                 case IActorRef tcp:
@@ -97,12 +107,26 @@ namespace Neo.Network.P2P
                     OnAck();
                     break;
                 case Tcp.Received received:
+                    totalTcpReceiveCount++;
+                    tcpReceiveCount++;
                     OnReceived(received.Data);
                     break;
                 case Tcp.ConnectionClosed _:
                     Context.Stop(Self);
                     break;
+                case TPSTimer _:
+                    ReportTCPTps();
+                    break;
             }
+        }
+
+        private void ReportTCPTps()
+        {
+            Log.Info($"tcp receive count of single connection in this 15s: {tcpReceiveCount}, TPS = {tcpReceiveCount / 15}");
+            Log.Info($"tcp send count of single connection in this 15s: {tcpSendCount}, TPS = {tcpSendCount / 15}");
+            tcpReceiveCount = 0;
+            tcpSendCount = 0;
+
         }
 
         private void OnReceived(ByteString data)
@@ -133,6 +157,8 @@ namespace Neo.Network.P2P
             if (tcp != null)
             {
                 tcp.Tell(Tcp.Write.Create(data, Ack.Instance));
+                totalTcpSendCount++;
+                tcpSendCount++;
             }
             else
             {

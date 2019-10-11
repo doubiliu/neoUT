@@ -53,7 +53,7 @@ namespace Neo.SmartContract.Native
             });
             engine.Snapshot.Storages.Add(CreateStorageKey(Prefix_MaxTransactionsPerBlock), new StorageItem
             {
-                Value = BitConverter.GetBytes(5120000000u)
+                Value = BitConverter.GetBytes(51200u)
             });
             engine.Snapshot.Storages.Add(CreateStorageKey(Prefix_FeePerByte), new StorageItem
             {

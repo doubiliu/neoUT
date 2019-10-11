@@ -341,13 +341,7 @@ namespace Neo.Network.RPC
                             {
                                 for (long i = 0; i < realTxAmount; i++)
                                 {
-                                    //wallet.ApplyTransaction(transactions[i]);
-                                    //system.LocalNode.Tell(new LocalNode.Relay { Inventory = transactions[i] });
-                                    if (Blockchain.Singleton.MemPool.TryAdd(transactions[i].Hash, transactions[i]))
-                                    {
-                                        system.LocalNode.Tell(new LocalNode.RelayDirectly { Inventory = transactions[i] });
-                                        successfulTransaction++;
-                                    }
+                                    successfulTransaction = SendTX(transactions, i, successfulTransaction);
                                 }
                             }
                             else if (sleepInterval < 1)
@@ -356,13 +350,7 @@ namespace Neo.Network.RPC
                                 int times = 0;
                                 for (long i = 0; i < realTxAmount; i++)
                                 {
-                                    //wallet.ApplyTransaction(transactions[i]);
-                                    //system.LocalNode.Tell(new LocalNode.Relay { Inventory = transactions[i] });
-                                    if (Blockchain.Singleton.MemPool.TryAdd(transactions[i].Hash, transactions[i]))
-                                    {
-                                        system.LocalNode.Tell(new LocalNode.RelayDirectly { Inventory = transactions[i] });
-                                        successfulTransaction++;
-                                    }
+                                    successfulTransaction = SendTX(transactions, i, successfulTransaction);
                                     times++;
                                     if (times == interval)
                                     {
@@ -375,13 +363,7 @@ namespace Neo.Network.RPC
                             {
                                 for (long i = 0; i < realTxAmount; i++)
                                 {
-                                    //wallet.ApplyTransaction(transactions[i]);
-                                    //system.LocalNode.Tell(new LocalNode.Relay { Inventory = transactions[i] });
-                                    if (Blockchain.Singleton.MemPool.TryAdd(transactions[i].Hash, transactions[i]))
-                                    {
-                                        system.LocalNode.Tell(new LocalNode.RelayDirectly { Inventory = transactions[i] });
-                                        successfulTransaction++;
-                                    }
+                                    successfulTransaction = SendTX(transactions, i, successfulTransaction);
                                     Thread.Sleep((int)sleepInterval);
                                 }
                             }
@@ -406,13 +388,7 @@ namespace Neo.Network.RPC
                                 {
                                     for (long i = 0; i < realTxAmount; i++)
                                     {
-                                        //wallet.ApplyTransaction(transactions[i]);
-                                        //system.LocalNode.Tell(new LocalNode.Relay { Inventory = transactions[i] });
-                                        if (Blockchain.Singleton.MemPool.TryAdd(transactions[i].Hash, transactions[i]))
-                                        {
-                                            system.LocalNode.Tell(new LocalNode.RelayDirectly { Inventory = transactions[i] });
-                                            successfulTransaction++;
-                                        }
+                                        successfulTransaction = SendTX(transactions, i, successfulTransaction);
                                     }
                                 }
                                 else if (sleepInterval < 1)
@@ -421,13 +397,7 @@ namespace Neo.Network.RPC
                                     int times = 0;
                                     for (long i = 0; i < realTxAmount; i++)
                                     {
-                                        //wallet.ApplyTransaction(transactions[i]);
-                                        //system.LocalNode.Tell(new LocalNode.Relay { Inventory = transactions[i] });
-                                        if (Blockchain.Singleton.MemPool.TryAdd(transactions[i].Hash, transactions[i]))
-                                        {
-                                            system.LocalNode.Tell(new LocalNode.RelayDirectly { Inventory = transactions[i] });
-                                            successfulTransaction++;
-                                        }
+                                        successfulTransaction = SendTX(transactions, i, successfulTransaction);
                                         times++;
                                         if (times == interval)
                                         {
@@ -440,13 +410,7 @@ namespace Neo.Network.RPC
                                 {
                                     for (long i = 0; i < realTxAmount; i++)
                                     {
-                                        //wallet.ApplyTransaction(transactions[i]);
-                                        //system.LocalNode.Tell(new LocalNode.Relay { Inventory = transactions[i] });
-                                        if (Blockchain.Singleton.MemPool.TryAdd(transactions[i].Hash, transactions[i]))
-                                        {
-                                            system.LocalNode.Tell(new LocalNode.RelayDirectly { Inventory = transactions[i] });
-                                            successfulTransaction++;
-                                        }
+                                        successfulTransaction = SendTX(transactions, i, successfulTransaction);
                                         Thread.Sleep((int)sleepInterval);
                                     }
                                 }
@@ -460,9 +424,9 @@ namespace Neo.Network.RPC
                             throw new RpcException(-400, "Access denied.");
                         else
                         {
-                            UInt160 asset_id = UInt160.Parse(_params[0].AsString());
-                            long migrateCount = long.Parse(_params[1].AsString());
-                            int spreadAmountPerAccount = int.Parse(_params[2].AsString());
+                            UInt160 asset_id = UInt160.Parse(_params[0].AsString()); //NEO或GAS的hash
+                            long migrateCount = long.Parse(_params[1].AsString());   //生成交易的数量
+                            int spreadAmountPerAccount = int.Parse(_params[2].AsString()); //转账金额
                             if (migrateCount <= 0) return "Invalid migrateCount";
                             UInt160 originalAccount = Wallet.GetAccounts().Where(p => !p.Lock && !p.WatchOnly).Select(p => p.ScriptHash).ToArray()[0];
                             AssetDescriptor descriptor = new AssetDescriptor(asset_id);
@@ -472,7 +436,7 @@ namespace Neo.Network.RPC
                                 {
                                     AssetId = asset_id,
                                     Value = BigDecimal.Parse(spreadAmountPerAccount.ToString(), descriptor.Decimals),
-                                    ScriptHash = originalAccount
+                                    ScriptHash = originalAccount //转账目标是自己
                                 }
                             };
                             Transaction[] transactions = new Transaction[migrateCount];
@@ -509,6 +473,18 @@ namespace Neo.Network.RPC
                 default:
                     throw new RpcException(-32601, "Method not found");
             }
+        }
+
+        private int SendTX(Transaction[] transactions, long index, int successfulTransaction)
+        {
+            //wallet.ApplyTransaction(transactions[i]);
+            system.LocalNode.Tell(new LocalNode.Relay { Inventory = transactions[index] });
+            //if (Blockchain.Singleton.MemPool.TryAdd(transactions[index].Hash, transactions[index]))
+            //{
+            //    system.LocalNode.Tell(new LocalNode.RelayDirectly { Inventory = transactions[index] });
+            //    return ++successfulTransaction;
+            //}
+            return ++successfulTransaction;
         }
 
         private async Task ProcessAsync(HttpContext context)
