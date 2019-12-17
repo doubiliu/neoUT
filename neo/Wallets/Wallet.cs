@@ -269,7 +269,7 @@ namespace Neo.Wallets
                          new Cosigner()
                          {
                              // default access for transfers should be valid only for first invocation
-                             Scopes = WitnessScope.CalledByEntry,
+                             Scopes = WitnessScope.Global,
                              Account = new UInt160(p.ToArray())
                          }).ToArray();
 
