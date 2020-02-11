@@ -50,7 +50,6 @@ namespace Neo.Oracle
         }
 
         [ContractMethod(0_01000000, ContractParameterType.Boolean, ParameterTypes = new[] { ContractParameterType.Hash160, ContractParameterType.Array }, ParameterNames = new[] { "account", "pubkeys" })]
-
         private bool ChangeOracleValidator(ApplicationEngine engine, Array args)
         {
             UInt160 account = new UInt160(args[0].GetSpan());
@@ -68,7 +67,7 @@ namespace Neo.Oracle
         {
             ECPoint[] consensusPublicKey = PolicyContract.NEO.GetValidators(snapshot);
             IEnumerable<(ECPoint ConsensusPublicKey, ECPoint OraclePublicKey)> ps;
-            return GetRegisteredOracleValidators(snapshot).Where(p=> consensusPublicKey.Contains(p.ConsensusPublicKey)).Select(p=>p.OraclePublicKey).ToArray();
+            return GetRegisteredOracleValidators(snapshot).Where(p => consensusPublicKey.Contains(p.ConsensusPublicKey)).Select(p => p.OraclePublicKey).ToArray();
         }
 
         public BigInteger GetOracleValidatorsCount(StoreView snapshot)
