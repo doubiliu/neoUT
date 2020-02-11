@@ -1,14 +1,11 @@
 using Neo.Cryptography.ECC;
 using Neo.IO;
 using Neo.Ledger;
-using Neo.Network.P2P.Payloads;
 using Neo.Persistence;
 using Neo.SmartContract;
 using Neo.SmartContract.Manifest;
 using Neo.SmartContract.Native;
-using Neo.SmartContract.Native.Tokens;
 using Neo.VM;
-using Neo.VM.Types;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -66,14 +63,12 @@ namespace Neo.Oracle
         public ECPoint[] GetOracleValidators(StoreView snapshot)
         {
             ECPoint[] consensusPublicKey = PolicyContract.NEO.GetValidators(snapshot);
-            IEnumerable<(ECPoint ConsensusPublicKey, ECPoint OraclePublicKey)> ps;
             return GetRegisteredOracleValidators(snapshot).Where(p => consensusPublicKey.Contains(p.ConsensusPublicKey)).Select(p => p.OraclePublicKey).ToArray();
         }
 
         public BigInteger GetOracleValidatorsCount(StoreView snapshot)
         {
             ECPoint[] consensusPublicKey = PolicyContract.NEO.GetValidators(snapshot);
-            IEnumerable<(ECPoint ConsensusPublicKey, ECPoint OraclePublicKey)> ps;
             return GetRegisteredOracleValidators(snapshot).Where(p => consensusPublicKey.Contains(p.ConsensusPublicKey)).Select(p => p.OraclePublicKey).ToArray().Length;
         }
 
