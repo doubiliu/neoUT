@@ -3,7 +3,9 @@ using Neo.IO;
 using Neo.Ledger;
 using Neo.Network.P2P.Payloads;
 using Neo.Persistence;
+using Neo.SmartContract;
 using Neo.SmartContract.Manifest;
+using Neo.SmartContract.Native;
 using Neo.SmartContract.Native.Tokens;
 using Neo.VM;
 using Neo.VM.Types;
@@ -13,11 +15,15 @@ using System.Linq;
 using System.Numerics;
 using Array = Neo.VM.Types.Array;
 
-namespace Neo.SmartContract.Native
+namespace Neo.Oracle
 {
     public sealed class OraclePolicyContract : NativeContract
     {
-        public override string ServiceName => "Neo.Native.Oracle.OraclePolicy";
+        public override string ServiceName => "Neo.Native.Oracle.Policy";
+
+        public int TimeOutMilliSeconds = 1000;
+
+        public int PerRequestFee = 0_01000000;
 
         private const byte Prefix_Validator = 24;
 
@@ -26,7 +32,7 @@ namespace Neo.SmartContract.Native
             Manifest.Features = ContractFeatures.HasStorage;
         }
 
-        [ContractMethod(5_00000000, ContractParameterType.Boolean, ParameterTypes = new[] { ContractParameterType.Hash160, ContractParameterType.Array }, ParameterNames = new[] { "account", "pubkeys" })]
+        [ContractMethod(0_01000000, ContractParameterType.Boolean, ParameterTypes = new[] { ContractParameterType.Hash160, ContractParameterType.Array }, ParameterNames = new[] { "account", "pubkeys" })]
         private bool RegisterOracleValidator(ApplicationEngine engine, Array args)
         {
             UInt160 account = new UInt160(args[0].GetSpan());
@@ -43,7 +49,7 @@ namespace Neo.SmartContract.Native
             return true;
         }
 
-        [ContractMethod(5_00000000, ContractParameterType.Boolean, ParameterTypes = new[] { ContractParameterType.Hash160, ContractParameterType.Array }, ParameterNames = new[] { "account", "pubkeys" })]
+        [ContractMethod(0_01000000, ContractParameterType.Boolean, ParameterTypes = new[] { ContractParameterType.Hash160, ContractParameterType.Array }, ParameterNames = new[] { "account", "pubkeys" })]
 
         private bool ChangeOracleValidator(ApplicationEngine engine, Array args)
         {
@@ -58,14 +64,14 @@ namespace Neo.SmartContract.Native
             return true;
         }
 
-        public ECPoint[] GetAuthorizedOracleValidators(StoreView snapshot)
+        public ECPoint[] GetOracleValidators(StoreView snapshot)
         {
             ECPoint[] consensusPublicKey = PolicyContract.NEO.GetValidators(snapshot);
             IEnumerable<(ECPoint ConsensusPublicKey, ECPoint OraclePublicKey)> ps;
             return GetRegisteredOracleValidators(snapshot).Where(p=> consensusPublicKey.Contains(p.ConsensusPublicKey)).Select(p=>p.OraclePublicKey).ToArray();
         }
 
-        public BigInteger GetAuthorizedOracleValidatorsCount(StoreView snapshot)
+        public BigInteger GetOracleValidatorsCount(StoreView snapshot)
         {
             ECPoint[] consensusPublicKey = PolicyContract.NEO.GetValidators(snapshot);
             IEnumerable<(ECPoint ConsensusPublicKey, ECPoint OraclePublicKey)> ps;
