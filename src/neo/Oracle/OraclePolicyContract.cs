@@ -1,6 +1,7 @@
 using Neo.Cryptography.ECC;
 using Neo.IO;
 using Neo.Ledger;
+using Neo.Network.P2P.Payloads;
 using Neo.Persistence;
 using Neo.SmartContract;
 using Neo.SmartContract.Manifest;
@@ -80,9 +81,16 @@ namespace Neo.Oracle
         [ContractMethod(0_03000000, ContractParameterType.Integer, ParameterTypes = new[] { ContractParameterType.Integer }, ParameterNames = new[] { "fee" })]
         private bool SetTimeOutMilliSeconds(ApplicationEngine engine, Array args)
         {
+            StoreView snapshot = engine.Snapshot;
+            Transaction tx = (Transaction)engine.ScriptContainer;
+            Array signatures = new Array(tx.Witnesses.ToList().Select(p => StackItem.FromInterface(p.VerificationScript)));
+            Array pubkeys = new Array(GetOracleValidators(snapshot).ToList().Select(p=> StackItem.FromInterface(p)));
+            engine.CurrentContext.EvaluationStack.Push(signatures);
+            engine.CurrentContext.EvaluationStack.Push(pubkeys);
+            engine.CurrentContext.EvaluationStack.Push(StackItem.Null);
+
             if (BitConverter.ToInt32(args[0].GetSpan()) <= 0) return false;
             int timeOutMilliSeconds = BitConverter.ToInt32(args[0].GetSpan());
-            StoreView snapshot = engine.Snapshot;
             if (!InteropService.Crypto.ECDsaCheckMultiSig.Handler.Invoke(engine))
             {
                 return false;
@@ -123,9 +131,15 @@ namespace Neo.Oracle
         [ContractMethod(0_03000000, ContractParameterType.Integer, ParameterTypes = new[] { ContractParameterType.Integer }, ParameterNames = new[] { "fee" })]
         private StackItem SetPerRequestFee(ApplicationEngine engine, Array args)
         {
+            StoreView snapshot = engine.Snapshot;
+            Transaction tx = (Transaction)engine.ScriptContainer;
+            Array signatures = new Array(tx.Witnesses.ToList().Select(p => StackItem.FromInterface(p.VerificationScript)));
+            Array pubkeys = new Array(GetOracleValidators(snapshot).ToList().Select(p => StackItem.FromInterface(p)));
+            engine.CurrentContext.EvaluationStack.Push(signatures);
+            engine.CurrentContext.EvaluationStack.Push(pubkeys);
+            engine.CurrentContext.EvaluationStack.Push(StackItem.Null);
             if (BitConverter.ToInt32(args[0].GetSpan()) <= 0) return false;
             int perRequestFee = BitConverter.ToInt32(args[0].GetSpan());
-            StoreView snapshot = engine.Snapshot;
             if (!InteropService.Crypto.ECDsaCheckMultiSig.Handler.Invoke(engine)) {
                 return false;
             }
