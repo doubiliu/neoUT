@@ -30,7 +30,7 @@ namespace Neo.Oracle
         }
 
         [ContractMethod(0_01000000, ContractParameterType.Boolean, ParameterTypes = new[] { ContractParameterType.Hash160, ContractParameterType.Array }, ParameterNames = new[] { "account", "pubkeys" })]
-        private bool DelegateOracleValidator(ApplicationEngine engine, Array args)
+        private StackItem DelegateOracleValidator(ApplicationEngine engine, Array args)
         {
             UInt160 account = new UInt160(args[0].GetSpan());
             if (!InteropService.Runtime.CheckWitnessInternal(engine, account)) return false;
@@ -78,8 +78,8 @@ namespace Neo.Oracle
             ));
         }
 
-        [ContractMethod(0_03000000, ContractParameterType.Integer, ParameterTypes = new[] { ContractParameterType.Integer }, ParameterNames = new[] { "fee" })]
-        private bool SetTimeOutMilliSeconds(ApplicationEngine engine, Array args)
+        [ContractMethod(0_03000000, ContractParameterType.Boolean, ParameterTypes = new[] { ContractParameterType.Integer }, ParameterNames = new[] { "fee" })]
+        private StackItem SetTimeOutMilliSeconds(ApplicationEngine engine, Array args)
         {
             StoreView snapshot = engine.Snapshot;
             Transaction tx = (Transaction)engine.ScriptContainer;
@@ -128,7 +128,7 @@ namespace Neo.Oracle
             }
         }
 
-        [ContractMethod(0_03000000, ContractParameterType.Integer, ParameterTypes = new[] { ContractParameterType.Integer }, ParameterNames = new[] { "fee" })]
+        [ContractMethod(0_03000000, ContractParameterType.Boolean, ParameterTypes = new[] { ContractParameterType.Integer }, ParameterNames = new[] { "fee" })]
         private StackItem SetPerRequestFee(ApplicationEngine engine, Array args)
         {
             StoreView snapshot = engine.Snapshot;
