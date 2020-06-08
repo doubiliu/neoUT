@@ -1,6 +1,7 @@
 #pragma warning disable IDE0051
 #pragma warning disable IDE0060
 
+using Neo.Cryptography.ECC;
 using Neo.IO;
 using Neo.Ledger;
 using Neo.Network.P2P.Payloads;
@@ -10,13 +11,12 @@ using Neo.SmartContract.Native.Tokens;
 using Neo.VM;
 using Neo.VM.Types;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using Array = Neo.VM.Types.Array;
 
 namespace Neo.SmartContract.Native
 {
-    public sealed class OracleContract : NativeContract
+    public sealed partial class OracleContract : NativeContract
     {
         public override string Name => "Oracle";
         public override int Id => -4;
@@ -28,11 +28,6 @@ namespace Neo.SmartContract.Native
         public OracleContract()
         {
             Manifest.Features = ContractFeatures.HasStorage;
-        }
-
-        internal override void Initialize(ApplicationEngine engine)
-        {
-
         }
 
         [ContractMethod(0_01000000, ContractParameterType.Boolean, CallFlags.AllowStates, ParameterTypes = new[] { ContractParameterType.ByteArray, ContractParameterType.ByteArray }, ParameterNames = new[] { "OracleRequestType", "OracleRequest" })]
@@ -90,12 +85,14 @@ namespace Neo.SmartContract.Native
 
         private OracleResponse GetResponse(StoreView snapshot, UInt256 RequestTxHash)
         {
-            return snapshot.Storages.TryGet(CreateResponseKey(RequestTxHash))?.GetInteroperable<ResponseState>().GetConsensusResponse(4);
+            UInt160[] validators = GetOracleValidators(snapshot)?.ToList().Select(p => Contract.CreateSignatureRedeemScript(p).ToScriptHash()).ToArray();
+            return snapshot.Storages.TryGet(CreateResponseKey(RequestTxHash))?.GetInteroperable<ResponseState>().GetConsensusResponse(2*validators.Length/3);
         }
 
         private bool SubmitResponse(StoreView snapshot, OracleResponse response, UInt160 oracleNode)
         {
-            //权限检查,发送者是否是Oracle节点
+            UInt160[] validators= GetOracleValidators(snapshot)?.ToList().Select(p=> Contract.CreateSignatureRedeemScript(p).ToScriptHash()).ToArray();
+            if (!validators.Contains(oracleNode)) return false;
             StorageKey key_request = CreateRequestKey(response.RequestTxHash);
             RequestState request = snapshot.Storages.TryGet(key_request).GetInteroperable<RequestState>();
             if (request is null) return false;
@@ -104,11 +101,11 @@ namespace Neo.SmartContract.Native
 
             StorageKey key_existing_response = CreateResponseKey(response.RequestTxHash);
             ResponseState existing_response = snapshot.Storages.GetAndChange(key_existing_response, () => new StorageItem(new ResponseState())).GetInteroperable<ResponseState>();
-            if (existing_response.GetConsensusResponse(4) != null) return false;
+            if (existing_response.GetConsensusResponse(2* validators.Length/3) != null) return false;
             existing_response.ResponseHashAndResponseMapping.Add(response.Hash, response);
             existing_response.NodeAndResponseHashMapping.Add(oracleNode, response.Hash);
 
-            if (existing_response.GetConsensusResponse(4) != null)
+            if (existing_response.GetConsensusResponse(2 * validators.Length / 3) != null)
                 request.status = 0x01;
 
             return true;
@@ -136,7 +133,8 @@ namespace Neo.SmartContract.Native
             StorageKey key_response = CreateResponseKey(RequestTxHash);
             ResponseState response = engine.Snapshot.Storages.TryGet(key_response)?.GetInteroperable<ResponseState>();
             if (response is null) return false;
-            OracleResponse final_response = response.GetConsensusResponse(4);
+            UInt160[] validators = GetOracleValidators(engine.Snapshot)?.ToList().Select(p => Contract.CreateSignatureRedeemScript(p).ToScriptHash()).ToArray();
+            OracleResponse final_response = response.GetConsensusResponse(2 * validators.Length / 3);
             if (final_response is null) return false;
             byte[] data = final_response.Result;
             engine.CallContractEx(request.request.CallBackContractHash, request.request.CallBackMethod, new Array() { data }, CallFlags.All);

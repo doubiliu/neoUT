@@ -46,11 +46,11 @@ namespace Neo.SmartContract.Native.Tokens
             return CreateResult(requestHash, null);
         }
 
-        public static OracleResponse CreateResult(UInt256 requesttxHash, byte[] result)
+        public static OracleResponse CreateResult(UInt256 requestTxHash, byte[] result)
         {
             return new OracleResponse()
             {
-                RequestTxHash = requesttxHash,
+                RequestTxHash = requestTxHash,
                 Result = result
             };
         }

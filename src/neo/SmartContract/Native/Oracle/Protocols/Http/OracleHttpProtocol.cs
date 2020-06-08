@@ -2,11 +2,14 @@ using Neo.Ledger;
 using Neo.SmartContract.Native;
 using Neo.SmartContract.Native.Oracle;
 using Neo.SmartContract.Native.Tokens;
+using System;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using HttpMethod = Neo.SmartContract.Native.Tokens.HttpMethod;
 
 namespace Neo.Oracle.Protocols.Https
 {
@@ -49,14 +52,27 @@ namespace Neo.Oracle.Protocols.Https
 
             using (var snapshot = Blockchain.Singleton.GetSnapshot())
             {
-                // Config = NativeContract.Oracle.GetHttpConfig(snapshot);
+                Config = (HttpConfig)NativeContract.Oracle.GetConfig(snapshot, HttpConfig.Key);
             }
         }
 
-
+        // <summary>
+        /// Process HTTP oracle request
+        /// </summary>
+        /// <param name="request">Request</param>
+        /// <returns>Oracle result</returns>
         public OracleResponse Process(OracleHttpRequest request)
         {
-            Log($"Downloading HTTP request: url={request.URL.ToString()} method={request.Method}", LogLevel.Debug);
+            Log($"Downloading HTTPS request: url={request.URL.ToString()} method={request.Method}", LogLevel.Debug);
+            LoadConfig();
+
+            if (!AllowPrivateHost && IsInternal(Dns.GetHostEntry(request.URL.Host)))
+            {
+                // Don't allow private host in order to prevent SSRF
+
+                LogError(request.URL, "PolicyError");
+                return OracleResponse.CreateError(request.RequestTxHash);
+            }
 
             Task<HttpResponseMessage> result;
             using var handler = new HttpClientHandler
@@ -66,9 +82,11 @@ namespace Neo.Oracle.Protocols.Https
             };
             using var client = new HttpClient(handler);
 
+            client.DefaultRequestHeaders.Add("Accept", string.Join(",", HttpConfig.AllowedFormats));
+
             switch (request.Method)
             {
-                case SmartContract.Native.Tokens.HttpMethod.GET:
+                case HttpMethod.GET:
                     {
                         result = client.GetAsync(request.URL);
                         break;
@@ -80,7 +98,7 @@ namespace Neo.Oracle.Protocols.Https
                     }
             }
 
-            if (!result.Wait(5000))
+            if (!result.Wait(Config.TimeOut))
             {
                 // Timeout
 
@@ -96,10 +114,18 @@ namespace Neo.Oracle.Protocols.Https
                 return OracleResponse.CreateError(request.RequestTxHash);
             }
 
+            if (!HttpConfig.AllowedFormats.Contains(result.Result.Content.Headers.ContentType.MediaType))
+            {
+                // Error with the ContentType
+
+                LogError(request.URL, "ContentType it's not allowed");
+                return OracleResponse.CreateError(request.RequestTxHash);
+            }
+
             string ret;
             var taskRet = result.Result.Content.ReadAsStringAsync();
 
-            if (!taskRet.Wait(5000))
+            if (!taskRet.Wait(Config.TimeOut))
             {
                 // Timeout
 
@@ -113,7 +139,16 @@ namespace Neo.Oracle.Protocols.Https
                 ret = taskRet.Result;
             }
 
-            return OracleResponse.CreateResult(request.RequestTxHash, Encoding.UTF8.GetBytes(ret));
+            // Filter
+            using var snapshot = Blockchain.Singleton.GetSnapshot();
+
+            if (!OracleFilter.Filter(snapshot, request.Filter, Encoding.UTF8.GetBytes(ret), out var output, request.FilterFee))
+            {
+                LogError(request.URL, "FilterError");
+                return OracleResponse.CreateError(request.RequestTxHash);
+            }
+
+            return OracleResponse.CreateResult(request.RequestTxHash, output);
         }
 
         /// <summary>
@@ -121,7 +156,7 @@ namespace Neo.Oracle.Protocols.Https
         /// </summary>
         /// <param name="url">Url</param>
         /// <param name="error">Error</param>
-        private static void LogError(string url, string error)
+        private static void LogError(Uri url, string error)
         {
             Log($"{error} at {url.ToString()}", LogLevel.Error);
         }

@@ -62,7 +62,7 @@ namespace Neo.SmartContract.Native.Tokens
             {
                 if (votes.ContainsKey(keyValuePair.Value))
                 {
-                    votes[keyValuePair.Value] = votes[keyValuePair.Value] + 1;
+                    votes[keyValuePair.Value] += 1;
                 }
                 else
                 {

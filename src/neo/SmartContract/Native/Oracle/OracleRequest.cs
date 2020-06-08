@@ -9,7 +9,7 @@ namespace Neo.SmartContract.Native.Tokens
     {
         public abstract OracleRequestType Type { get; }
 
-        public virtual int Size => UInt256.Length + UInt160.Length + CallBackMethod.GetVarSize() + sizeof(uint) + OracleFee.ToByteArray().GetVarSize() + CallBackFee.ToByteArray().GetVarSize();
+        public virtual int Size => UInt256.Length + UInt160.Length + CallBackMethod.GetVarSize() + sizeof(uint) + sizeof(long) + sizeof(long) + sizeof(long);
 
         public UInt256 RequestTxHash;
 
@@ -21,11 +21,11 @@ namespace Neo.SmartContract.Native.Tokens
 
         public uint ValidHeight;
 
-        public BigInteger OracleFee;
+        public long OracleFee;
 
-        public BigInteger CallBackFee;
+        public long CallBackFee;
 
-        public BigInteger FilterFee;
+        public long FilterFee;
 
 
         public virtual void Serialize(BinaryWriter writer)
@@ -35,9 +35,9 @@ namespace Neo.SmartContract.Native.Tokens
             writer.Write(CallBackContractHash);
             writer.WriteVarString(CallBackMethod);
             writer.Write(ValidHeight);
-            writer.WriteVarBytes(OracleFee.ToByteArray());
-            writer.WriteVarBytes(CallBackFee.ToByteArray());
-            writer.WriteVarBytes(FilterFee.ToByteArray());
+            writer.Write(OracleFee);
+            writer.Write(CallBackFee);
+            writer.Write(FilterFee);
         }
 
         public virtual void Deserialize(BinaryReader reader)
@@ -47,8 +47,9 @@ namespace Neo.SmartContract.Native.Tokens
             CallBackContractHash = new UInt160(reader.ReadBytes(UInt160.Length));
             CallBackMethod = reader.ReadVarString();
             ValidHeight = reader.ReadUInt32();
-            OracleFee = new BigInteger(reader.ReadVarBytes());
-            CallBackFee = new BigInteger(reader.ReadVarBytes());
+            OracleFee = reader.ReadInt64();
+            CallBackFee = reader.ReadInt64();
+            FilterFee = reader.ReadInt64();
         }
     }
 }
