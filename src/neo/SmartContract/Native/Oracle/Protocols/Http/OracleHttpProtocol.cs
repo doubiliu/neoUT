@@ -15,8 +15,6 @@ namespace Neo.Oracle.Protocols.Https
 {
     internal class OracleHttpProtocol
     {
-        private long _lastHeight = -1;
-
         /// <summary>
         /// Config
         /// </summary>
@@ -40,16 +38,7 @@ namespace Neo.Oracle.Protocols.Https
         /// </summary>
         private void LoadConfig()
         {
-            // Check if it's the same
-
-            var height = Blockchain.Singleton.Height;
-            if (Interlocked.Exchange(ref _lastHeight, height) == height)
-            {
-                return;
-            }
-
             // Load the configuration
-
             using (var snapshot = Blockchain.Singleton.GetSnapshot())
             {
                 Config = (HttpConfig)NativeContract.Oracle.GetConfig(snapshot, HttpConfig.Key);

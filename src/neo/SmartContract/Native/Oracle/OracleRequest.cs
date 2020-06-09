@@ -1,11 +1,14 @@
 using Neo.IO;
 using Neo.Oracle;
+using Neo.VM;
+using Neo.VM.Types;
+using System;
 using System.IO;
 using System.Numerics;
 
 namespace Neo.SmartContract.Native.Tokens
 {
-    public abstract class OracleRequest : ISerializable
+    public abstract class OracleRequest : IInteroperable
     {
         public abstract OracleRequestType Type { get; }
 
@@ -50,6 +53,34 @@ namespace Neo.SmartContract.Native.Tokens
             OracleFee = reader.ReadInt64();
             CallBackFee = reader.ReadInt64();
             FilterFee = reader.ReadInt64();
+        }
+
+        public virtual void FromStackItem(StackItem stackItem)
+        {
+            Struct @struct = (Struct)stackItem;
+            RequestTxHash = @struct[0].GetSpan().AsSerializable<UInt256>();
+            Filter= @struct[1].GetSpan().AsSerializable<OracleFilter>();
+            CallBackContractHash = @struct[2].GetSpan().AsSerializable<UInt160>();
+            CallBackMethod = @struct[3].GetString();
+            ValidHeight = BitConverter.ToUInt32(@struct[4].GetSpan());
+            OracleFee= BitConverter.ToInt64(@struct[5].GetSpan());
+            CallBackFee = BitConverter.ToInt64(@struct[6].GetSpan());
+            FilterFee = BitConverter.ToInt64(@struct[7].GetSpan());
+        }
+
+        public virtual StackItem ToStackItem(ReferenceCounter referenceCounter)
+        {
+            Struct @struct = new Struct(referenceCounter)
+            { RequestTxHash.ToArray(),
+              Filter.ToArray(),
+              CallBackContractHash.ToArray(),
+              CallBackMethod,
+              ValidHeight,
+              OracleFee,
+              CallBackFee,
+              FilterFee
+            };
+            return @struct;
         }
     }
 }
