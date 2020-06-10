@@ -160,13 +160,27 @@ namespace Neo.SmartContract.Native
                 return false;
             }
             byte[] data = response.Result;
+            engine.CallContractEx(NativeContract.Oracle.Hash, "refund", new Array() { RequestTxHash.ToArray() }, CallFlags.All);
+
             engine.CallContractEx(request.request.CallBackContractHash, request.request.CallBackMethod, new Array() { data }, CallFlags.All);
+            return true;
+        }
+
+        [ContractMethod(0_01000000, ContractParameterType.Boolean, CallFlags.All, ParameterTypes = new[] { ContractParameterType.Hash256 }, ParameterNames = new[] { "RequestTxHash" })]
+        public StackItem Refund(ApplicationEngine engine, Array args)
+        {
+            UInt256 RequestTxHash = args[0].GetSpan().AsSerializable<UInt256>();
+            Transaction tx = (Transaction)engine.ScriptContainer;
+            UInt160 account = tx.Sender;
+            StorageKey key_request = CreateRequestKey(RequestTxHash);
+            RequestState request = engine.Snapshot.Storages.TryGet(key_request)?.GetInteroperable<RequestState>();
             request = engine.Snapshot.Storages.GetAndChange(key_request).GetInteroperable<RequestState>();
             request.status = 0x02;
             NativeContract.GAS.Burn(engine, NativeContract.Oracle.Hash, request.request.CallBackFee);
             NativeContract.GAS.Mint(engine, account, request.request.CallBackFee);
             return true;
         }
+
 
         protected override bool OnPersist(ApplicationEngine engine)
         {
