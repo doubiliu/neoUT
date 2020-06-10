@@ -1,4 +1,8 @@
 using Neo.IO;
+using Neo.Ledger;
+using Neo.Network.P2P.Payloads;
+using Neo.Persistence;
+using Neo.SmartContract.Iterators;
 using Neo.VM;
 using Neo.VM.Types;
 using System.Collections.Generic;
@@ -8,54 +12,42 @@ namespace Neo.SmartContract.Native.Tokens
 {
     public class ResponseState : IInteroperable
     {
-
-        public Dictionary<UInt160, OracleResponse> ResponseHashAndResponseMapping = new Dictionary<UInt160, OracleResponse>();
-
+        public Dictionary<UInt160, UInt256> NodeAndTxIdHashMapping = new Dictionary<UInt160, UInt256>();
         public Dictionary<UInt160, UInt160> NodeAndResponseHashMapping = new Dictionary<UInt160, UInt160>();
-
 
         public virtual void FromStackItem(StackItem stackItem)
         {
-            int responseCount = int.Parse(((Struct)stackItem)[0].GetBigInteger().ToString());
-            ResponseHashAndResponseMapping = new Dictionary<UInt160, OracleResponse>();
-            for (int i = 1; i < responseCount + 1; i += 2)
-            {
-                UInt160 responseHash = ((Struct)stackItem)[i].GetSpan().ToArray().AsSerializable<UInt160>();
-                OracleResponse response = ((Struct)stackItem)[i + 1].GetSpan().ToArray().AsSerializable<OracleResponse>();
-                ResponseHashAndResponseMapping.Add(responseHash, response);
+            Struct @struct = (Struct)stackItem;
+            MapWrapper NodeAndTxIdHash = new MapWrapper((Map)@struct[0]);
+            while (NodeAndTxIdHash.Next()) {
+                NodeAndTxIdHashMapping.Add(NodeAndTxIdHash.Key().GetSpan().AsSerializable<UInt160>(), NodeAndTxIdHash.Value().GetSpan().AsSerializable<UInt256>());
             }
-            int nodeCount = int.Parse(((Struct)stackItem)[responseCount + 1].GetBigInteger().ToString());
-            ResponseHashAndResponseMapping = new Dictionary<UInt160, OracleResponse>();
-            for (int i = responseCount + 2; i < responseCount + nodeCount + 2; i += 2)
+            MapWrapper NodeAndResponseHash = new MapWrapper((Map)@struct[1]);
+            while (NodeAndResponseHash.Next())
             {
-                UInt160 node = ((Struct)stackItem)[i].GetSpan().ToArray().AsSerializable<UInt160>();
-                UInt160 responseHash = ((Struct)stackItem)[i + 1].GetSpan().ToArray().AsSerializable<UInt160>();
-                NodeAndResponseHashMapping.Add(responseHash, responseHash);
+                NodeAndResponseHashMapping.Add(NodeAndResponseHash.Key().GetSpan().AsSerializable<UInt160>(), NodeAndResponseHash.Value().GetSpan().AsSerializable<UInt160>());
             }
         }
 
         public virtual StackItem ToStackItem(ReferenceCounter referenceCounter)
         {
             Struct @struct = new Struct(referenceCounter);
-
-            BigInteger responseCount = ResponseHashAndResponseMapping.Count;
-            @struct.Add(responseCount);
-            foreach (KeyValuePair<UInt160, OracleResponse> keyValuePair in ResponseHashAndResponseMapping)
+            Map NodeAndTxIdHash = new Map(referenceCounter);
+            foreach (KeyValuePair<UInt160, UInt256> entry in NodeAndTxIdHashMapping)
             {
-                @struct.Add(keyValuePair.Key.ToArray());
-                @struct.Add(keyValuePair.Value.ToArray());
+                NodeAndTxIdHash[new ByteString(entry.Key.ToArray())]= new ByteString(entry.Value.ToArray());
             }
-            BigInteger nodeCount = NodeAndResponseHashMapping.Count;
-            @struct.Add(nodeCount);
-            foreach (KeyValuePair<UInt160, UInt160> keyValuePair in NodeAndResponseHashMapping)
+            @struct.Add(NodeAndTxIdHash);
+            Map NodeAndResponseHash = new Map(referenceCounter);
+            foreach (KeyValuePair<UInt160, UInt160> entry in NodeAndResponseHashMapping)
             {
-                @struct.Add(keyValuePair.Key.ToArray());
-                @struct.Add(keyValuePair.Value.ToArray());
+                NodeAndTxIdHash[new ByteString(entry.Key.ToArray())]=new ByteString(entry.Value.ToArray());
             }
+            @struct.Add(NodeAndResponseHash);
             return @struct;
         }
 
-        public OracleResponse GetConsensusResponse(int MinVote)
+        public UInt160 GetConsensusResponseHash(int MinVote)
         {
             Dictionary<UInt160, int> votes = new Dictionary<UInt160, int>();
             foreach (KeyValuePair<UInt160, UInt160> keyValuePair in NodeAndResponseHashMapping)
@@ -73,14 +65,12 @@ namespace Neo.SmartContract.Native.Tokens
             sortvotes.Sort((s1, s2) => { return s1.Value.CompareTo(s2.Value); });
             if (sortvotes.Count == 0) return null;
             if (sortvotes[sortvotes.Count - 1].Value < MinVote) return null;
-            return ResponseHashAndResponseMapping[sortvotes[sortvotes.Count - 1].Key];
+
+            return sortvotes[sortvotes.Count - 1].Key;
         }
 
-        public UInt160[] GetIncentiveAccount(int MinVote)
+        public UInt160[] GetIncentiveAccount(UInt160 responseHash)
         {
-            OracleResponse response = GetConsensusResponse(MinVote);
-            if (response is null) return null;
-            UInt160 responseHash = response.Hash;
             List<UInt160> accounts = new List<UInt160>();
             foreach (KeyValuePair<UInt160, UInt160> keyValuePair in NodeAndResponseHashMapping)
             {
@@ -90,6 +80,17 @@ namespace Neo.SmartContract.Native.Tokens
                 }
             }
             return accounts.ToArray();
+        }
+
+        public UInt256 GetTransactionId(UInt160 responseHash)
+        {
+            foreach(KeyValuePair<UInt160, UInt160> keyValuePair in NodeAndResponseHashMapping) {
+                if (keyValuePair.Value == responseHash)
+                {
+                    return NodeAndTxIdHashMapping[keyValuePair.Key];
+                }
+            }
+            return null;
         }
     }
 }

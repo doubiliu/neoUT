@@ -18,10 +18,12 @@ namespace Neo.SmartContract.Native.Tokens
             switch (type)
             {
                 case OracleRequestType.HTTP:
-                    request = ((Struct)stackItem)[1].GetSpan().ToArray().AsSerializable<OracleHttpRequest>();
+                    request = new OracleHttpRequest();
+                    request.FromStackItem(((Struct)stackItem)[1]);
                     break;
                 default:
-                    request = ((Struct)stackItem)[1].GetSpan().ToArray().AsSerializable<OracleHttpRequest>();
+                    request = new OracleHttpRequest();
+                    request.FromStackItem(((Struct)stackItem)[1]);
                     break;
             }
             status = ((Struct)stackItem)[2].GetBigInteger();
@@ -38,7 +40,7 @@ namespace Neo.SmartContract.Native.Tokens
             {
                 @struct.Add(new byte[] { (byte)OracleRequestType.HTTP });
             }
-            @struct.Add(request.ToArray());
+            @struct.Add(request.ToStackItem(referenceCounter));
             @struct.Add(status);
             return @struct;
         }

@@ -17,7 +17,7 @@ using Array = Neo.VM.Types.Array;
 
 namespace Neo.SmartContract.Native
 {
-    public sealed partial class OracleContract : NativeContract
+    public partial class OracleContract : NativeContract
     {
         public override string Name => "Oracle";
         public override int Id => -4;
@@ -92,36 +92,41 @@ namespace Neo.SmartContract.Native
         public OracleResponse GetResponse(StoreView snapshot, UInt256 RequestTxHash)
         {
             UInt160[] validators = GetOracleValidators(snapshot)?.ToList().Select(p => Contract.CreateSignatureRedeemScript(p).ToScriptHash()).ToArray();
-            return snapshot.Storages.TryGet(CreateResponseKey(RequestTxHash))?.GetInteroperable<ResponseState>().GetConsensusResponse(2 * validators.Length / 3);
+            ResponseState responseState=snapshot.Storages.TryGet(CreateResponseKey(RequestTxHash))?.GetInteroperable<ResponseState>();
+            if (responseState is null) return null;
+            UInt160 responseHash = responseState.GetConsensusResponseHash(2 * validators.Length / 3);
+            if (responseHash is null) return null;
+
+            UInt256 transactionId= responseState.GetTransactionId(responseHash);
+            Transaction tx=snapshot.GetTransaction(transactionId);
+            if (tx is null) return null;
+
+            TransactionAttribute attribute = tx.Attributes.Where(p => p is OracleResponseAttribute).FirstOrDefault();
+            if (attribute is null) return null;
+            return ((OracleResponseAttribute)attribute).response;
+
         }
 
-        private bool SubmitResponse(StoreView snapshot, OracleResponse response, UInt160 oracleNode)
+        private ResponseState SubmitResponse(StoreView snapshot, OracleResponse response, UInt160 oracleNode,UInt256 txId)
         {
             UInt160[] validators = GetOracleValidators(snapshot)?.ToList().Select(p => Contract.CreateSignatureRedeemScript(p).ToScriptHash()).ToArray();
-            if (!validators.Contains(oracleNode)) return false;
+            if (!validators.Contains(oracleNode)) return null;
             StorageKey key_request = CreateRequestKey(response.RequestTxHash);
             RequestState request = snapshot.Storages.TryGet(key_request).GetInteroperable<RequestState>();
-            if (request is null) return false;
-            if (request.status != 0x00) return false;
-            if (request.request.ValidHeight < snapshot.Height) return false;
+            if (request is null) return null;
+            if (request.status != 0x00) return null;
+            if (request.request.ValidHeight < snapshot.Height) return null;
 
             StorageKey key_existing_response = CreateResponseKey(response.RequestTxHash);
             ResponseState existing_response = snapshot.Storages.GetAndChange(key_existing_response, () => new StorageItem(new ResponseState())).GetInteroperable<ResponseState>();
-            if (existing_response.GetConsensusResponse(2 * validators.Length / 3) != null) return false;
-            existing_response.ResponseHashAndResponseMapping.Add(response.Hash, response);
+            if (existing_response.GetConsensusResponseHash(2 * validators.Length / 3) != null) return null;
+            existing_response.NodeAndTxIdHashMapping.Add(oracleNode, txId);
             existing_response.NodeAndResponseHashMapping.Add(oracleNode, response.Hash);
 
-            if (existing_response.GetConsensusResponse(2 * validators.Length / 3) != null)
+            if (existing_response.GetConsensusResponseHash(2 * validators.Length / 3) != null)
                 request.status = 0x01;
 
-            return true;
-        }
-
-        private UInt160[] GetIncentiveAccount(StoreView snapshot, OracleResponse response)
-        {
-            StorageKey key = CreateResponseKey(response.RequestTxHash);
-            ResponseState responsetState = snapshot.Storages.GetAndChange(key, () => new StorageItem(new ResponseState())).GetInteroperable<ResponseState>();
-            return responsetState.GetIncentiveAccount(4);
+            return existing_response;
         }
 
         [ContractMethod(0_01000000, ContractParameterType.Boolean, CallFlags.All, ParameterTypes = new[] { ContractParameterType.Hash256 }, ParameterNames = new[] { "RequestTxHash" })]
@@ -140,20 +145,21 @@ namespace Neo.SmartContract.Native
                 return false;
             }
             StorageKey key_response = CreateResponseKey(RequestTxHash);
-            ResponseState response = engine.Snapshot.Storages.TryGet(key_response)?.GetInteroperable<ResponseState>();
+            ResponseState responseState = engine.Snapshot.Storages.TryGet(key_response)?.GetInteroperable<ResponseState>();
+            if (responseState is null)
+            {
+                NativeContract.GAS.Mint(engine, account, engine.GasLeft);
+                return false;
+            }
+
+            OracleResponse response = GetResponse(engine.Snapshot, RequestTxHash);
+
             if (response is null)
             {
                 NativeContract.GAS.Mint(engine, account, engine.GasLeft);
                 return false;
             }
-            UInt160[] validators = GetOracleValidators(engine.Snapshot)?.ToList().Select(p => Contract.CreateSignatureRedeemScript(p).ToScriptHash()).ToArray();
-            OracleResponse final_response = response.GetConsensusResponse(2 * validators.Length / 3);
-            if (final_response is null)
-            {
-                NativeContract.GAS.Mint(engine, account, engine.GasLeft);
-                return false;
-            }
-            byte[] data = final_response.Result;
+            byte[] data = response.Result;
             engine.CallContractEx(request.request.CallBackContractHash, request.request.CallBackMethod, new Array() { data }, CallFlags.All);
             request = engine.Snapshot.Storages.GetAndChange(key_request).GetInteroperable<RequestState>();
             request.status = 0x02;
@@ -170,9 +176,10 @@ namespace Neo.SmartContract.Native
                 TransactionAttribute attribute = tx.Attributes.Where(p => p is OracleResponseAttribute).FirstOrDefault();
                 if (attribute is null) continue;
                 OracleResponse response = ((OracleResponseAttribute)attribute).response;
-                if (SubmitResponse(engine.Snapshot, response, tx.Sender))
+                ResponseState responseState = SubmitResponse(engine.Snapshot, response, tx.Sender, tx.Hash);
+                if (responseState !=null)
                 {
-                    UInt160[] IncentiveAccount = GetIncentiveAccount(engine.Snapshot, response);
+                    UInt160[] IncentiveAccount = responseState.GetIncentiveAccount(response.Hash);
                     if (IncentiveAccount != null)
                     {
                         OracleRequest request = GetRequest(engine.Snapshot, response.RequestTxHash);

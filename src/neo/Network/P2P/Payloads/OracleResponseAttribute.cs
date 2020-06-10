@@ -15,7 +15,7 @@ namespace Neo.Network.P2P.Payloads
 
         public override TransactionAttributeType Type => TransactionAttributeType.OracleResponse;
 
-        public override bool AllowMultiple => throw new NotImplementedException();
+        public override bool AllowMultiple => false;
 
         protected override void DeserializeWithoutType(BinaryReader reader)
         {

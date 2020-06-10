@@ -8,7 +8,7 @@ using System.Numerics;
 
 namespace Neo.SmartContract.Native.Tokens
 {
-    public abstract class OracleRequest : IInteroperable
+    public abstract class OracleRequest : IInteroperable,ISerializable
     {
         public abstract OracleRequestType Type { get; }
 
