@@ -9,7 +9,7 @@ namespace Neo.SmartContract.Native.Tokens
     {
         public OracleRequest request;
 
-        public BigInteger status;//0x00 未提交完成 0x01 提交完成 0x02 已执行callback
+        public RequestStatus status;//0x00 未提交完成 0x01 提交完成 0x02 已执行callback
 
 
         public virtual void FromStackItem(StackItem stackItem)
@@ -26,7 +26,7 @@ namespace Neo.SmartContract.Native.Tokens
                     request.FromStackItem(((Struct)stackItem)[1]);
                     break;
             }
-            status = ((Struct)stackItem)[2].GetBigInteger();
+            status = (RequestStatus)((Struct)stackItem)[2].GetSpan().ToArray()[0];
         }
 
         public virtual StackItem ToStackItem(ReferenceCounter referenceCounter)
@@ -41,7 +41,7 @@ namespace Neo.SmartContract.Native.Tokens
                 @struct.Add(new byte[] { (byte)OracleRequestType.HTTP });
             }
             @struct.Add(request.ToStackItem(referenceCounter));
-            @struct.Add(status);
+            @struct.Add(new byte[] { (byte)status });
             return @struct;
         }
     }

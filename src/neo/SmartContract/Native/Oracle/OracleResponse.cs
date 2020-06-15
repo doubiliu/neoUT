@@ -12,6 +12,8 @@ namespace Neo.SmartContract.Native.Tokens
 
         public byte[] Result { get; set; }
 
+        public long FilterCost { get; set; }
+
         public bool Error => Result == null;
 
         public virtual void Serialize(BinaryWriter writer)
@@ -26,6 +28,7 @@ namespace Neo.SmartContract.Native.Tokens
             {
                 writer.Write((byte)0x00);
             }
+            writer.Write(FilterCost);
         }
 
         public virtual void Deserialize(BinaryReader reader)
@@ -39,19 +42,21 @@ namespace Neo.SmartContract.Native.Tokens
             {
                 Result = null;
             }
+            FilterCost = reader.ReadInt64();
         }
 
         public static OracleResponse CreateError(UInt256 requestHash)
         {
-            return CreateResult(requestHash, null);
+            return CreateResult(requestHash, null,0);
         }
 
-        public static OracleResponse CreateResult(UInt256 requestTxHash, byte[] result)
+        public static OracleResponse CreateResult(UInt256 requestTxHash, byte[] result,long filterCost)
         {
             return new OracleResponse()
             {
                 RequestTxHash = requestTxHash,
-                Result = result
+                Result = result,
+                FilterCost=filterCost
             };
         }
 

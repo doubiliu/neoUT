@@ -2,6 +2,7 @@ using Akka.Actor;
 using Neo.Consensus;
 using Neo.Ledger;
 using Neo.Network.P2P;
+using Neo.Oracle;
 using Neo.Persistence;
 using Neo.Plugins;
 using Neo.Wallets;

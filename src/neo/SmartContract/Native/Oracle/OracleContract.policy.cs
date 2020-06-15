@@ -22,35 +22,7 @@ namespace Neo.SmartContract.Native
         internal const byte Prefix_Validator = 24;
         internal const byte Prefix_Config = 25;
         internal const byte Prefix_PerRequestFee = 26;
-
-        [ContractMethod(0_03000000, ContractParameterType.Boolean, CallFlags.AllowModifyStates, ParameterTypes = new[] { ContractParameterType.ByteArray, ContractParameterType.ByteArray }, ParameterNames = new[] { "consignorPubKey", "consigneePubKey" })]
-        private StackItem DelegateOracleValidator(ApplicationEngine engine, VM.Types.Array args)
-        {
-            StoreView snapshot = engine.Snapshot;
-            ECPoint consignorPubKey = args[0].GetSpan().AsSerializable<ECPoint>();
-            ECPoint consigneePubKey = args[1].GetSpan().AsSerializable<ECPoint>();
-            ECPoint[] cnPubKeys = NEO.GetValidators(snapshot);
-            if (!cnPubKeys.Contains(consignorPubKey)) return false;
-            UInt160 account = Contract.CreateSignatureRedeemScript(consignorPubKey).ToScriptHash();
-            if (!engine.CheckWitnessInternal(account)) return false;
-            StorageKey key = CreateStorageKey(Prefix_Validator, consignorPubKey);
-            StorageItem item = snapshot.Storages.GetAndChange(key, () => new StorageItem());
-            item.Value = consigneePubKey.ToArray();
-
-            byte[] prefixKey = StorageKey.CreateSearchPrefix(Id, new[] { Prefix_Validator });
-            List<ECPoint> delegatedOracleValidators = snapshot.Storages.Find(prefixKey).Select(p =>
-              (
-                  p.Key.Key.AsSerializable<ECPoint>(1)
-              )).ToList();
-            foreach (var validator in delegatedOracleValidators)
-            {
-                if (!cnPubKeys.Contains(validator))
-                {
-                    snapshot.Storages.Delete(CreateStorageKey(Prefix_Validator, validator));
-                }
-            }
-            return true;
-        }
+        internal const byte Prefix_ValidHeight = 27;
 
         [ContractMethod(0_01000000, ContractParameterType.Array, CallFlags.AllowStates)]
         private StackItem GetOracleValidators(ApplicationEngine engine, VM.Types.Array args)
@@ -80,7 +52,7 @@ namespace Neo.SmartContract.Native
         }
 
         /// <returns>The number of authorized Oracle validator</returns>
-        public BigInteger GetOracleValidatorsCount(StoreView snapshot)
+        public int GetOracleValidatorsCount(StoreView snapshot)
         {
             return GetOracleValidators(snapshot).Length;
         }
@@ -149,16 +121,41 @@ namespace Neo.SmartContract.Native
         }
 
         [ContractMethod(0_01000000, ContractParameterType.Integer, requiredCallFlags: CallFlags.AllowStates)]
-        private StackItem GetPerRequestFee(ApplicationEngine engine, VM.Types.Array args)
+        public StackItem GetPerRequestFee(ApplicationEngine engine, VM.Types.Array args)
         {
-            return new Integer(GetPerRequestFee(engine.Snapshot));
+            return GetPerRequestFee(engine.Snapshot);
         }
 
-        public int GetPerRequestFee(StoreView snapshot)
+        public long GetPerRequestFee(StoreView snapshot)
         {
             StorageItem storage = snapshot.Storages.TryGet(CreateStorageKey(Prefix_PerRequestFee));
             if (storage is null) return 0;
-            return BitConverter.ToInt32(storage.Value);
+            return BitConverter.ToInt64(storage.Value);
+        }
+
+        [ContractMethod(0_03000000, ContractParameterType.Boolean, CallFlags.AllowModifyStates, ParameterTypes = new[] { ContractParameterType.Integer }, ParameterNames = new[] { "ValidHeight" })]
+        private StackItem SetValidHeight(ApplicationEngine engine, VM.Types.Array args)
+        {
+            StoreView snapshot = engine.Snapshot;
+            UInt160 account = GetOracleMultiSigAddress(snapshot);
+            if (!engine.CheckWitnessInternal(account)) return false;
+            uint ValidHeight = (uint)args[0].GetBigInteger();
+            StorageItem storage = snapshot.Storages.GetAndChange(CreateStorageKey(Prefix_ValidHeight));
+            storage.Value = BitConverter.GetBytes(ValidHeight);
+            return true;
+        }
+
+        [ContractMethod(0_01000000, ContractParameterType.Integer, requiredCallFlags: CallFlags.AllowStates)]
+        public StackItem GetValidHeight(ApplicationEngine engine, VM.Types.Array args)
+        {
+            return new Integer(GetValidHeight(engine.Snapshot));
+        }
+
+        public uint GetValidHeight(StoreView snapshot)
+        {
+            StorageItem storage = snapshot.Storages.TryGet(CreateStorageKey(Prefix_ValidHeight));
+            if (storage is null) return 0;
+            return BitConverter.ToUInt32(storage.Value);
         }
     }
 }

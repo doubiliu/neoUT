@@ -26,10 +26,6 @@ namespace Neo.SmartContract.Native.Tokens
 
         public long OracleFee;
 
-        public long CallBackFee;
-
-        public long FilterFee;
-
 
         public virtual void Serialize(BinaryWriter writer)
         {
@@ -39,8 +35,6 @@ namespace Neo.SmartContract.Native.Tokens
             writer.WriteVarString(CallBackMethod);
             writer.Write(ValidHeight);
             writer.Write(OracleFee);
-            writer.Write(CallBackFee);
-            writer.Write(FilterFee);
         }
 
         public virtual void Deserialize(BinaryReader reader)
@@ -51,8 +45,6 @@ namespace Neo.SmartContract.Native.Tokens
             CallBackMethod = reader.ReadVarString();
             ValidHeight = reader.ReadUInt32();
             OracleFee = reader.ReadInt64();
-            CallBackFee = reader.ReadInt64();
-            FilterFee = reader.ReadInt64();
         }
 
         public virtual void FromStackItem(StackItem stackItem)
@@ -62,10 +54,8 @@ namespace Neo.SmartContract.Native.Tokens
             Filter= @struct[1].GetSpan().AsSerializable<OracleFilter>();
             CallBackContractHash = @struct[2].GetSpan().AsSerializable<UInt160>();
             CallBackMethod = @struct[3].GetString();
-            ValidHeight = BitConverter.ToUInt32(@struct[4].GetSpan());
-            OracleFee= BitConverter.ToInt64(@struct[5].GetSpan());
-            CallBackFee = BitConverter.ToInt64(@struct[6].GetSpan());
-            FilterFee = BitConverter.ToInt64(@struct[7].GetSpan());
+            ValidHeight = (uint)@struct[4].GetBigInteger();
+            OracleFee= (long)@struct[5].GetBigInteger();
         }
 
         public virtual StackItem ToStackItem(ReferenceCounter referenceCounter)
@@ -76,9 +66,7 @@ namespace Neo.SmartContract.Native.Tokens
               CallBackContractHash.ToArray(),
               CallBackMethod,
               ValidHeight,
-              OracleFee,
-              CallBackFee,
-              FilterFee
+              OracleFee
             };
             return @struct;
         }

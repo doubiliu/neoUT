@@ -32,8 +32,8 @@ namespace Neo.SmartContract.Native.Tokens
         public override void FromStackItem(StackItem stackItem)
         {
             base.FromStackItem(stackItem);
-            Method = (HttpMethod)((Struct)stackItem)[8].GetSpan().ToArray()[8];
-            URL = new Uri(((Struct)stackItem)[9].GetString());
+            Method = (HttpMethod)((Struct)stackItem)[6].GetSpan().ToArray()[0];
+            URL = new Uri(((Struct)stackItem)[7].GetString());
         }
 
         public override StackItem ToStackItem(ReferenceCounter referenceCounter)
