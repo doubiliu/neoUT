@@ -339,9 +339,9 @@ namespace Neo.UnitTests.SmartContract
                 contracts.Delete(contractA.ScriptHash);
                 contracts.Delete(contractB.ScriptHash);
                 contracts.Delete(contractC.ScriptHash);
-                contractA.Manifest = TestUtils.CreateDefaultManifest(contractA.ScriptHash, "dummyMain");
-                contractB.Manifest = TestUtils.CreateDefaultManifest(contractA.ScriptHash, "dummyMain");
-                contractC.Manifest = TestUtils.CreateDefaultManifest(contractA.ScriptHash, "dummyMain");
+                contractA.Manifest = TestUtils.CreateManifest(contractA.ScriptHash, "dummyMain", ContractParameterType.Any, ContractParameterType.Integer, ContractParameterType.Integer);
+                contractB.Manifest = TestUtils.CreateManifest(contractA.ScriptHash, "dummyMain", ContractParameterType.Any, ContractParameterType.Integer, ContractParameterType.Integer);
+                contractC.Manifest = TestUtils.CreateManifest(contractA.ScriptHash, "dummyMain", ContractParameterType.Any, ContractParameterType.Integer, ContractParameterType.Integer);
                 contracts.Add(contractA.ScriptHash, contractA);
                 contracts.Add(contractB.ScriptHash, contractB);
                 contracts.Add(contractC.ScriptHash, contractC);
@@ -351,10 +351,10 @@ namespace Neo.UnitTests.SmartContract
 
             using (var script = new ScriptBuilder())
             {
-                script.EmitAppCall(contractA.ScriptHash, "dummyMain", 0, 1);
-                script.EmitAppCall(contractB.ScriptHash, "dummyMain", 0, 1);
-                script.EmitAppCall(contractB.ScriptHash, "dummyMain", 0, 1);
-                script.EmitAppCall(contractC.ScriptHash, "dummyMain", 0, 1);
+                script.EmitAppCall(contractA.ScriptHash, ContractParameterType.Any, "dummyMain", 0, 1);
+                script.EmitAppCall(contractB.ScriptHash, ContractParameterType.Any, "dummyMain", 0, 1);
+                script.EmitAppCall(contractB.ScriptHash, ContractParameterType.Any, "dummyMain", 0, 1);
+                script.EmitAppCall(contractC.ScriptHash, ContractParameterType.Any, "dummyMain", 0, 1);
 
                 // Execute
 
