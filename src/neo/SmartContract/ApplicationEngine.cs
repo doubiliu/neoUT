@@ -17,6 +17,12 @@ namespace Neo.SmartContract
 {
     public partial class ApplicationEngine : ExecutionEngine
     {
+        private class InvocationState
+        {
+            public Type ReturnType;
+            public Delegate Callback;
+        }
+
         public static event EventHandler<NotifyEventArgs> Notify;
         public static event EventHandler<LogEventArgs> Log;
 
@@ -28,6 +34,7 @@ namespace Neo.SmartContract
         private readonly List<NotifyEventArgs> notifications = new List<NotifyEventArgs>();
         private readonly List<IDisposable> disposables = new List<IDisposable>();
         private readonly Dictionary<UInt160, int> invocationCounter = new Dictionary<UInt160, int>();
+        private readonly Dictionary<ExecutionContext, InvocationState> invocationStates = new Dictionary<ExecutionContext, InvocationState>();
 
         public static IEnumerable<InteropDescriptor> Services => services.Values;
         public TriggerType Trigger { get; }
@@ -55,13 +62,42 @@ namespace Neo.SmartContract
             return testMode || GasConsumed <= gas_amount;
         }
 
+        internal void CallFromNativeContract(Action onComplete, UInt160 hash, string method, params StackItem[] args)
+        {
+            invocationStates.Add(CurrentContext, new InvocationState
+            {
+                ReturnType = typeof(void),
+                Callback = onComplete
+            });
+            CallContract(hash, ContractParameterType.Void, method, new VMArray(args));
+        }
+
+        internal void CallFromNativeContract<T>(Action<T> onComplete, UInt160 hash, string method, params StackItem[] args)
+        {
+            invocationStates.Add(CurrentContext, new InvocationState
+            {
+                ReturnType = typeof(T),
+                Callback = onComplete
+            });
+            CallContract(hash, ContractParameterType.Any, method, new VMArray(args));
+        }
+
         protected override void ContextUnloaded(ExecutionContext context)
         {
             base.ContextUnloaded(context);
-            if (context.EvaluationStack == CurrentContext?.EvaluationStack) return;
-            int rvcount = context.GetState<ExecutionContextState>().RVCount;
-            if (rvcount != -1 && rvcount != context.EvaluationStack.Count)
-                throw new InvalidOperationException();
+            if (context.EvaluationStack != CurrentContext?.EvaluationStack)
+            {
+                int rvcount = context.GetState<ExecutionContextState>().RVCount;
+                if (rvcount != -1 && rvcount != context.EvaluationStack.Count)
+                    throw new InvalidOperationException();
+            }
+            if (!(UncaughtException is null)) return;
+            if (invocationStates.Count == 0) return;
+            if (!invocationStates.Remove(CurrentContext, out InvocationState state)) return;
+            if (state.Callback is Action action)
+                action();
+            else
+                state.Callback.DynamicInvoke(Convert(Pop(), new InteropParameterDescriptor(state.ReturnType)));
         }
 
         protected override void LoadContext(ExecutionContext context)
