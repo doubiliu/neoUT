@@ -51,9 +51,7 @@ namespace Neo.SmartContract.Native
             Manifest.Abi.Events = events.ToArray();
         }
 
-        [ContractMethod(0_01000000, ContractParameterType.Boolean, CallFlags.All,
-            ParameterTypes = new[] { ContractParameterType.String, ContractParameterType.ByteArray, ContractParameterType.String, ContractParameterType.String, ContractParameterType.ByteArray, ContractParameterType.String, ContractParameterType.Integer },
-            ParameterNames = new[] { "url", "filterContract", "filterMethod", "filterArgs", "callBackContract", "callBackMethod", "oracleFee"  })]
+        [ContractMethod(0_01000000,CallFlags.All)]
         public StackItem RegisterRequest(ApplicationEngine engine, Array args)
         {
             if (args.Count != 7) throw new ArgumentException($"Provided arguments must be 7 instead of {args.Count}");
@@ -119,7 +117,7 @@ namespace Neo.SmartContract.Native
             engine.AddGas(request.OracleFee);
             requestState = new RequestState() { request = request, status = 0 };
             engine.Snapshot.Storages.Add(key, new StorageItem(requestState));
-            engine.SendNotification(Hash, new Array(new StackItem[] { "RegisterRequest", request.RequestTxHash.ToArray() }));
+            engine.SendNotification(Hash, "RegisterRequest",new Array() { request.RequestTxHash.ToArray() });
             return true;
         }
 
@@ -140,38 +138,34 @@ namespace Neo.SmartContract.Native
             return true;
         }
 
-        [ContractMethod(0_01000000, ContractParameterType.Boolean, CallFlags.All, ParameterTypes = new[] { ContractParameterType.Hash256 }, ParameterNames = new[] { "RequestTxHash" })]
-        public StackItem InvokeCallBackMethod(ApplicationEngine engine, Array args)
+        [ContractMethod(0_01000000,CallFlags.All)]
+        public void InvokeCallBackMethod(ApplicationEngine engine)
         {
             UInt160 oracleAddress = GetOracleMultiSigAddress(engine.Snapshot);
-            if (!engine.CheckWitnessInternal(oracleAddress)) return false;
+            if (!engine.CheckWitnessInternal(oracleAddress)) throw new InvalidOperationException();
 
-            if (!(engine.ScriptContainer is Transaction)) return false;
+            if (!(engine.ScriptContainer is Transaction)) throw new InvalidOperationException();
             Transaction tx = (Transaction)engine.ScriptContainer;
             TransactionAttribute attribute = tx.Attributes.Where(p => p is OracleResponseAttribute).FirstOrDefault();
-            if (attribute is null) return false;
+            if (attribute is null) throw new InvalidOperationException();
             OracleResponse response = ((OracleResponseAttribute)attribute).response;
             UInt256 RequestTxHash = response.RequestTxHash;
             StorageKey key_request = CreateRequestKey(RequestTxHash);
             RequestState request = engine.Snapshot.Storages.TryGet(key_request)?.GetInteroperable<RequestState>();
-            if (request is null) return false;
-            if (request.status != RequestStatus.READY) return false;
+            if (request is null) throw new InvalidOperationException();
+            if (request.status != RequestStatus.READY) throw new InvalidOperationException();
 
             byte[] data = response.Result;
             long GasLeftBeforeCallBack = engine.GasLeft;
             long FilterCost = response.FilterCost;
             engine.CallContractEx(NativeContract.Oracle.Hash, "refund", new Array() { RequestTxHash.ToArray() , GasLeftBeforeCallBack , FilterCost }, CallFlags.All);
             engine.CallContractEx(request.request.CallBackContractHash, request.request.CallBackMethod, new Array() { data}, CallFlags.All);
-            return true;
         }
 
-        [ContractMethod(0_01000000, ContractParameterType.Boolean, CallFlags.All, ParameterTypes = new[] { ContractParameterType.Hash256 }, ParameterNames = new[] { "RequestTxHash" })]
-        public StackItem Refund(ApplicationEngine engine, Array args)
+        [ContractMethod(0_01000000, CallFlags.All)]
+        public void Refund(ApplicationEngine engine, UInt256 RequestTxHash, long GasLeftBeforeCallBack, long FilterCost)
         {
-            if (engine.CallingScriptHash != NativeContract.Oracle.Hash) return false;
-            UInt256 RequestTxHash = args[0].GetSpan().AsSerializable<UInt256>();
-            long GasLeftBeforeCallBack = (long)args[1].GetBigInteger() ;
-            long FilterCost = (long)args[2].GetBigInteger();
+            if (engine.CallingScriptHash != NativeContract.Oracle.Hash) throw new InvalidOperationException();
             long GasLeftAfterCallBack = engine.GasLeft;
             long CallBackCost = GasLeftBeforeCallBack - GasLeftAfterCallBack;
             StorageKey key_request = CreateRequestKey(RequestTxHash);
@@ -184,18 +178,16 @@ namespace Neo.SmartContract.Native
             request = engine.Snapshot.Storages.GetAndChange(key_request).GetInteroperable<RequestState>();
             request.status = RequestStatus.SUCCESSED;
             if(refundGas>0) NativeContract.GAS.Mint(engine, account, refundGas);
-            return true;
         }
 
-
-        protected override bool OnPersist(ApplicationEngine engine)
+        protected override void OnPersist(ApplicationEngine engine)
         {
-            if (!base.OnPersist(engine)) return false;
+            base.OnPersist(engine);
             foreach (Transaction tx in engine.Snapshot.PersistingBlock.Transactions)
             {
                 TransactionAttribute attribute = tx.Attributes.Where(p => p is OracleResponseAttribute).FirstOrDefault();
                 if (attribute is null) continue;
-                if(tx.Sender != GetOracleMultiSigAddress(engine.Snapshot))return false;
+                if(tx.Sender != GetOracleMultiSigAddress(engine.Snapshot)) throw new InvalidOperationException();
                 OracleResponse response = ((OracleResponseAttribute)attribute).response;
                 if (SubmitResponse(engine, response)) {
                     UInt160[] oracleNodes = GetOracleValidators(engine.Snapshot).Select(p=>Contract.CreateSignatureContract(p).ScriptHash).ToArray();
@@ -209,7 +201,6 @@ namespace Neo.SmartContract.Native
                     if(CallBackFee>0) NativeContract.GAS.Mint(engine, tx.Sender, CallBackFee);
                 }
             }
-            return true;
         }
 
         private StorageKey CreateRequestKey(UInt256 requestTxHash)
