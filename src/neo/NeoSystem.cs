@@ -22,6 +22,7 @@ namespace Neo
         public IActorRef LocalNode { get; }
         internal IActorRef TaskManager { get; }
         public IActorRef Consensus { get; private set; }
+        internal IActorRef Oracle { get; }
 
         private readonly IStore store;
         private ChannelsConfig start_message = null;
@@ -42,6 +43,7 @@ namespace Neo
             this.Blockchain = ActorSystem.ActorOf(Ledger.Blockchain.Props(this, store));
             this.LocalNode = ActorSystem.ActorOf(Network.P2P.LocalNode.Props(this));
             this.TaskManager = ActorSystem.ActorOf(Network.P2P.TaskManager.Props(this));
+            this.Oracle = ActorSystem.ActorOf(OracleService.Props(this));
             foreach (var plugin in Plugin.Plugins)
                 plugin.OnPluginsLoaded();
         }

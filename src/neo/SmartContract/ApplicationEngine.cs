@@ -62,7 +62,7 @@ namespace Neo.SmartContract
             return testMode || GasConsumed <= gas_amount;
         }
 
-        internal void CallFromNativeContract(Action onComplete, UInt160 hash, string method, params StackItem[] args)
+        public void CallFromNativeContract(Action onComplete, UInt160 hash, string method, params StackItem[] args)
         {
             invocationStates.Add(CurrentContext, new InvocationState
             {
@@ -72,7 +72,7 @@ namespace Neo.SmartContract
             CallContract(hash, ContractParameterType.Void, method, new VMArray(args));
         }
 
-        internal void CallFromNativeContract<T>(Action<T> onComplete, UInt160 hash, string method, params StackItem[] args)
+        public void CallFromNativeContract<T>(Action<T> onComplete, UInt160 hash, string method, params StackItem[] args)
         {
             invocationStates.Add(CurrentContext, new InvocationState
             {

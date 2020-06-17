@@ -24,8 +24,8 @@ namespace Neo.SmartContract.Native
         internal const byte Prefix_PerRequestFee = 26;
         internal const byte Prefix_ValidHeight = 27;
 
-        [ContractMethod(0_01000000, ContractParameterType.Array, CallFlags.AllowStates)]
-        private StackItem GetOracleValidators(ApplicationEngine engine, VM.Types.Array args)
+        [ContractMethod(0_01000000,CallFlags.AllowStates)]
+        public StackItem GetOracleValidators(ApplicationEngine engine, VM.Types.Array args)
         {
             return new VM.Types.Array(engine.ReferenceCounter, GetOracleValidators(engine.Snapshot).Select(p => (StackItem)p.ToArray()));
         }
@@ -45,8 +45,8 @@ namespace Neo.SmartContract.Native
             return oraclePubKeys.Distinct().ToArray();
         }
 
-        [ContractMethod(0_01000000, ContractParameterType.Integer, CallFlags.AllowStates)]
-        private StackItem GetOracleValidatorsCount(ApplicationEngine engine, VM.Types.Array args)
+        [ContractMethod(0_01000000, CallFlags.AllowStates)]
+        public int GetOracleValidatorsCount(ApplicationEngine engine, VM.Types.Array args)
         {
             return GetOracleValidatorsCount(engine.Snapshot);
         }
@@ -68,7 +68,7 @@ namespace Neo.SmartContract.Native
             return GetOracleMultiSigContract(snapshot).ScriptHash;
         }
 
-        [ContractMethod(0_03000000, ContractParameterType.Boolean, CallFlags.AllowModifyStates, ParameterTypes = new[] { ContractParameterType.String, ContractParameterType.ByteArray }, ParameterNames = new[] { "configKey", "configValue" })]
+        [ContractMethod(0_03000000,CallFlags.AllowModifyStates)]
         private StackItem SetConfig(ApplicationEngine engine, VM.Types.Array args)
         {
             StoreView snapshot = engine.Snapshot;
@@ -91,7 +91,7 @@ namespace Neo.SmartContract.Native
             return false;
         }
 
-        [ContractMethod(0_01000000, ContractParameterType.Array, CallFlags.AllowStates, ParameterTypes = new[] { ContractParameterType.String }, ParameterNames = new[] { "configKey" })]
+        [ContractMethod(0_01000000,CallFlags.AllowStates)]
         private StackItem GetConfig(ApplicationEngine engine, VM.Types.Array args)
         {
             return GetConfig(engine.Snapshot, args[0].GetString())?.ToStackItem(engine.ReferenceCounter);
@@ -107,7 +107,7 @@ namespace Neo.SmartContract.Native
             }
         }
 
-        [ContractMethod(0_03000000, ContractParameterType.Boolean, CallFlags.AllowModifyStates, ParameterTypes = new[] { ContractParameterType.Integer }, ParameterNames = new[] { "fee" })]
+        [ContractMethod(0_03000000, CallFlags.AllowModifyStates)]
         private StackItem SetPerRequestFee(ApplicationEngine engine, VM.Types.Array args)
         {
             StoreView snapshot = engine.Snapshot;
@@ -120,7 +120,7 @@ namespace Neo.SmartContract.Native
             return true;
         }
 
-        [ContractMethod(0_01000000, ContractParameterType.Integer, requiredCallFlags: CallFlags.AllowStates)]
+        [ContractMethod(0_01000000,CallFlags.AllowStates)]
         public StackItem GetPerRequestFee(ApplicationEngine engine, VM.Types.Array args)
         {
             return GetPerRequestFee(engine.Snapshot);
@@ -133,7 +133,7 @@ namespace Neo.SmartContract.Native
             return BitConverter.ToInt64(storage.Value);
         }
 
-        [ContractMethod(0_03000000, ContractParameterType.Boolean, CallFlags.AllowModifyStates, ParameterTypes = new[] { ContractParameterType.Integer }, ParameterNames = new[] { "ValidHeight" })]
+        [ContractMethod(0_03000000, CallFlags.AllowModifyStates)]
         private StackItem SetValidHeight(ApplicationEngine engine, VM.Types.Array args)
         {
             StoreView snapshot = engine.Snapshot;
@@ -145,10 +145,10 @@ namespace Neo.SmartContract.Native
             return true;
         }
 
-        [ContractMethod(0_01000000, ContractParameterType.Integer, requiredCallFlags: CallFlags.AllowStates)]
-        public StackItem GetValidHeight(ApplicationEngine engine, VM.Types.Array args)
+        [ContractMethod(0_01000000,CallFlags.AllowStates)]
+        public uint GetValidHeight(ApplicationEngine engine, VM.Types.Array args)
         {
-            return new Integer(GetValidHeight(engine.Snapshot));
+            return GetValidHeight(engine.Snapshot);
         }
 
         public uint GetValidHeight(StoreView snapshot)

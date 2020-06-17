@@ -52,34 +52,15 @@ namespace Neo.SmartContract.Native
         }
 
         [ContractMethod(0_01000000,CallFlags.All)]
-        public StackItem RegisterRequest(ApplicationEngine engine, Array args)
+        public bool RegisterRequest(ApplicationEngine engine, string urlstring,UInt160 filterContractHash,string filterContractMethod,string filterArgs,UInt160 callBackContractHash,string callBackMethod,long oracleFee)
         {
-            if (args.Count != 7) throw new ArgumentException($"Provided arguments must be 7 instead of {args.Count}");
-            //check args format
-            if (!(args[0] is PrimitiveType urlItem) || !Uri.TryCreate(urlItem.GetString(), UriKind.Absolute, out var url) ||
-                !(args[1] is StackItem filterContractItem) ||
-                !(args[2] is StackItem filterMethodItem) ||
-                !(args[3] is StackItem filterArgsItem) ||
-                !(args[4] is StackItem CallBackContractItem) ||
-                !(args[5] is StackItem CallBackMethodItem) ||
-                !(args[6] is StackItem OracleFeeItem)
-                ) throw new ArgumentException();
+            if (!Uri.TryCreate(urlstring, UriKind.Absolute, out var url)) throw new ArgumentException();
             // Create filter
-            OracleFilter filter;
-            if (filterMethodItem is PrimitiveType filterMethod)
-            {
-                filter = new OracleFilter()
-                {
-                    ContractHash = filterContractItem is PrimitiveType filterContract ? new UInt160(filterContract.Span) : throw new ArgumentException(),
-                    FilterMethod = Encoding.UTF8.GetString(filterMethod.Span),
-                    FilterArgs = filterArgsItem is PrimitiveType filterArgs ? Encoding.UTF8.GetString(filterArgs.Span) : ""
-                };
-            }
-            else
-            {
-                if (!filterMethodItem.IsNull) throw new ArgumentException("If the filter it's defined, the values can't be null");
-                filter = null;
-            }
+            OracleFilter filter = new OracleFilter() {
+                ContractHash = filterContractHash,
+                FilterMethod = filterContractMethod,
+                FilterArgs = filterArgs
+            };
             // Create request
             OracleRequest request;
             switch (url.Scheme.ToLowerInvariant())
@@ -92,9 +73,9 @@ namespace Neo.SmartContract.Native
                             Method = HttpMethod.GET,
                             URL = url,
                             Filter = filter,
-                            CallBackContractHash = CallBackContractItem is PrimitiveType CallBackContract ? new UInt160(CallBackContract.Span) : throw new ArgumentException(),
-                            CallBackMethod= Encoding.UTF8.GetString(CallBackMethodItem.GetSpan()),
-                            OracleFee= (long)OracleFeeItem.GetBigInteger(),
+                            CallBackContractHash = callBackContractHash,
+                            CallBackMethod= callBackMethod,
+                            OracleFee= oracleFee
                         };
                         break;
                     }
@@ -124,6 +105,11 @@ namespace Neo.SmartContract.Native
         public OracleRequest GetRequest(StoreView snapshot, UInt256 RequestTxHash)
         {
             return snapshot.Storages.TryGet(CreateRequestKey(RequestTxHash))?.GetInteroperable<RequestState>().request;
+        }
+
+        public RequestState GetRequestState(StoreView snapshot, UInt256 RequestTxHash)
+        {
+            return snapshot.Storages.TryGet(CreateRequestKey(RequestTxHash))?.GetInteroperable<RequestState>();
         }
 
         private bool SubmitResponse(ApplicationEngine engine, OracleResponse response)
@@ -158,13 +144,16 @@ namespace Neo.SmartContract.Native
             byte[] data = response.Result;
             long GasLeftBeforeCallBack = engine.GasLeft;
             long FilterCost = response.FilterCost;
-            engine.CallContractEx(NativeContract.Oracle.Hash, "refund", new Array() { RequestTxHash.ToArray() , GasLeftBeforeCallBack , FilterCost }, CallFlags.All);
-            engine.CallContractEx(request.request.CallBackContractHash, request.request.CallBackMethod, new Array() { data}, CallFlags.All);
+
+            engine.CallFromNativeContract(new Action(CallBackDetail), NativeContract.Oracle.Hash, "refund", RequestTxHash.ToArray(), GasLeftBeforeCallBack, FilterCost);
+            engine.CallFromNativeContract(new Action(CallBackDetail), request.request.CallBackContractHash, request.request.CallBackMethod,data);
         }
 
+        private void CallBackDetail() { }
+
         [ContractMethod(0_01000000, CallFlags.All)]
-        public void Refund(ApplicationEngine engine, UInt256 RequestTxHash, long GasLeftBeforeCallBack, long FilterCost)
-        {
+        public void Refund(ApplicationEngine engine,UInt256 RequestTxHash, long GasLeftBeforeCallBack, long FilterCost)
+        {        
             if (engine.CallingScriptHash != NativeContract.Oracle.Hash) throw new InvalidOperationException();
             long GasLeftAfterCallBack = engine.GasLeft;
             long CallBackCost = GasLeftBeforeCallBack - GasLeftAfterCallBack;
@@ -173,7 +162,7 @@ namespace Neo.SmartContract.Native
             UInt160[] oracleNodes = GetOracleValidators(engine.Snapshot).Select(p => Contract.CreateSignatureContract(p).ScriptHash).ToArray();
             long refundGas = request.request.OracleFee - (FilterCost + GetPerRequestFee(engine.Snapshot)) * oracleNodes.Length - CallBackCost;
 
-            Transaction tx = engine.GetTransaction(RequestTxHash);
+            Transaction tx = engine.Snapshot.Transactions.TryGet(RequestTxHash)?.Transaction;
             UInt160 account = tx.Sender;
             request = engine.Snapshot.Storages.GetAndChange(key_request).GetInteroperable<RequestState>();
             request.status = RequestStatus.SUCCESSED;
