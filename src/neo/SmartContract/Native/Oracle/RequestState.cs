@@ -7,7 +7,7 @@ namespace Neo.SmartContract.Native.Tokens
     {
         public OracleRequest Request;
 
-        public RequestStatusType status;//0x00 未提交完成 0x01 提交完成 0x02 已执行callback
+        public RequestStatusType Status;
 
         public virtual void FromStackItem(StackItem stackItem)
         {
