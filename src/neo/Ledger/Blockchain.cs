@@ -87,7 +87,7 @@ namespace Neo.Ledger
         {
             GenesisBlock.RebuildMerkleRoot();
 
-            NativeContract[] contracts = { NativeContract.GAS, NativeContract.NEO ,NativeContract.Oracle};
+            NativeContract[] contracts = { NativeContract.GAS, NativeContract.NEO, NativeContract.Oracle};
             using (ScriptBuilder sb = new ScriptBuilder())
             {
                 foreach (NativeContract contract in contracts)
