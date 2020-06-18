@@ -39,7 +39,6 @@ namespace Neo.SmartContract.Native.Tokens
 
         public Uri URL;
 
-
         public virtual void Serialize(BinaryWriter writer)
         {
             writer.Write(RequestTxHash);
