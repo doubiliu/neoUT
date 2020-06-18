@@ -22,7 +22,6 @@ namespace Neo.SmartContract.Native
         private const byte Prefix_Request = 21;
         private const byte Prefix_Response = 22;
 
-
         public OracleContract()
         {
             Manifest.Features = ContractFeatures.HasStorage;
