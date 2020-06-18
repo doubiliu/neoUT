@@ -18,7 +18,7 @@ namespace Neo.Network.P2P
         public class Update { public uint LastBlockIndex; }
         public class NewTasks { public InvPayload Payload; }
         public class RestartTasks { public InvPayload Payload; }
-        private class Timer { }
+        public class Timer { }
 
         private static readonly TimeSpan TimerInterval = TimeSpan.FromSeconds(30);
         private static readonly TimeSpan TaskTimeout = TimeSpan.FromMinutes(1);

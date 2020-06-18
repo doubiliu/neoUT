@@ -1,6 +1,6 @@
 namespace Neo.SmartContract.Native.Tokens
 {
-    public enum RequestStatus : byte
+    public enum RequestStatusType : byte
     {
         REQUEST=0x00,
         READY=0x01,

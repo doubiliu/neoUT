@@ -1,7 +1,5 @@
-using Neo.IO;
 using Neo.VM;
 using Neo.VM.Types;
-using System.Numerics;
 
 namespace Neo.SmartContract.Native.Tokens
 {
@@ -9,8 +7,7 @@ namespace Neo.SmartContract.Native.Tokens
     {
         public OracleRequest request;
 
-        public RequestStatus status;//0x00 未提交完成 0x01 提交完成 0x02 已执行callback
-
+        public RequestStatusType status;//0x00 未提交完成 0x01 提交完成 0x02 已执行callback
 
         public virtual void FromStackItem(StackItem stackItem)
         {
@@ -18,21 +15,21 @@ namespace Neo.SmartContract.Native.Tokens
             switch (type)
             {
                 case OracleRequestType.HTTP:
-                    request = new OracleHttpRequest();
+                    request = new OracleRequest();
                     request.FromStackItem(((Struct)stackItem)[1]);
                     break;
                 default:
-                    request = new OracleHttpRequest();
+                    request = new OracleRequest();
                     request.FromStackItem(((Struct)stackItem)[1]);
                     break;
             }
-            status = (RequestStatus)((Struct)stackItem)[2].GetSpan().ToArray()[0];
+            status = (RequestStatusType)((Struct)stackItem)[2].GetSpan().ToArray()[0];
         }
 
         public virtual StackItem ToStackItem(ReferenceCounter referenceCounter)
         {
             Struct @struct = new Struct(referenceCounter);
-            if (request is OracleHttpRequest)
+            if (request is OracleRequest)
             {
                 @struct.Add(new byte[] { (byte)OracleRequestType.HTTP });
             }

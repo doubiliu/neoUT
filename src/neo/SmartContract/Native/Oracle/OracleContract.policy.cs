@@ -1,7 +1,3 @@
-#pragma warning disable IDE0051
-#pragma warning disable IDE0060
-
-
 using Neo.Cryptography.ECC;
 using Neo.IO;
 using Neo.Ledger;
@@ -10,9 +6,7 @@ using Neo.SmartContract.Native.Oracle;
 using Neo.VM;
 using Neo.VM.Types;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using System.Text;
 
 namespace Neo.SmartContract.Native
@@ -20,11 +14,11 @@ namespace Neo.SmartContract.Native
     public partial class OracleContract : NativeContract
     {
         internal const byte Prefix_Validator = 24;
-        internal const byte Prefix_Config = 25;
-        internal const byte Prefix_PerRequestFee = 26;
-        internal const byte Prefix_ValidHeight = 27;
+        internal const byte Prefix_Config = 17;
+        internal const byte Prefix_PerRequestFee = 21;
+        internal const byte Prefix_ValidHeight = 19;
 
-        [ContractMethod(0_01000000,CallFlags.AllowStates)]
+        [ContractMethod(0_01000000, CallFlags.AllowStates)]
         public StackItem GetOracleValidators(ApplicationEngine engine, VM.Types.Array args)
         {
             return new VM.Types.Array(engine.ReferenceCounter, GetOracleValidators(engine.Snapshot).Select(p => (StackItem)p.ToArray()));
@@ -68,7 +62,7 @@ namespace Neo.SmartContract.Native
             return GetOracleMultiSigContract(snapshot).ScriptHash;
         }
 
-        [ContractMethod(0_03000000,CallFlags.AllowModifyStates)]
+        [ContractMethod(0_03000000, CallFlags.AllowModifyStates)]
         private StackItem SetConfig(ApplicationEngine engine, VM.Types.Array args)
         {
             StoreView snapshot = engine.Snapshot;
@@ -91,13 +85,14 @@ namespace Neo.SmartContract.Native
             return false;
         }
 
-        [ContractMethod(0_01000000,CallFlags.AllowStates)]
+        [ContractMethod(0_01000000, CallFlags.AllowStates)]
         private StackItem GetConfig(ApplicationEngine engine, VM.Types.Array args)
         {
             return GetConfig(engine.Snapshot, args[0].GetString())?.ToStackItem(engine.ReferenceCounter);
         }
 
-        public IInteroperable GetConfig(StoreView snapshot, string protocolType) {
+        public IInteroperable GetConfig(StoreView snapshot, string protocolType)
+        {
             switch (protocolType)
             {
                 case HttpConfig.Key:
@@ -120,7 +115,7 @@ namespace Neo.SmartContract.Native
             return true;
         }
 
-        [ContractMethod(0_01000000,CallFlags.AllowStates)]
+        [ContractMethod(0_01000000, CallFlags.AllowStates)]
         public StackItem GetPerRequestFee(ApplicationEngine engine, VM.Types.Array args)
         {
             return GetPerRequestFee(engine.Snapshot);
@@ -145,7 +140,7 @@ namespace Neo.SmartContract.Native
             return true;
         }
 
-        [ContractMethod(0_01000000,CallFlags.AllowStates)]
+        [ContractMethod(0_01000000, CallFlags.AllowStates)]
         public uint GetValidHeight(ApplicationEngine engine, VM.Types.Array args)
         {
             return GetValidHeight(engine.Snapshot);

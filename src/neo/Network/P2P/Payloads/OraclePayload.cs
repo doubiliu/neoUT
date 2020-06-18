@@ -82,7 +82,7 @@ namespace Neo.Network.P2P.Payloads
                     _deserializedOracleSignature = OracleResponseSignature.DeserializeFrom(Data);
                 return _deserializedOracleSignature;
             }
-            internal set
+            set
             {
                 if (!ReferenceEquals(_deserializedOracleSignature, value))
                 {

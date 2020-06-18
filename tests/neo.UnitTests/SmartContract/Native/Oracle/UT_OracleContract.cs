@@ -3,22 +3,18 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Neo.IO;
 using Neo.Ledger;
 using Neo.Network.P2P.Payloads;
-using Neo.Oracle;
 using Neo.Persistence;
 using Neo.SmartContract;
 using Neo.SmartContract.Manifest;
 using Neo.SmartContract.Native;
 using Neo.SmartContract.Native.Tokens;
-using Neo.UnitTests.Extensions;
 using Neo.VM;
 using Neo.VM.Types;
 using Neo.Wallets;
 using System;
 using System.IO;
-using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
-using VMArray = Neo.VM.Types.Array;
 
 namespace Neo.UnitTests.SmartContract.Native
 {
@@ -35,26 +31,25 @@ namespace Neo.UnitTests.SmartContract.Native
         }
 
         [TestMethod]
-        public void Check_RegisterRequest()
+        public void Check_Request()
         {
             var snapshot = Blockchain.Singleton.GetSnapshot();
-            var request = new OracleHttpRequest() {
+            var request = new OracleRequest()
+            {
                 URL = new Uri("https://www.baidu.com/"),
-                Filter=new OracleFilter() {
-                    ContractHash= UInt160.Zero,
-                    FilterMethod= "dotest",
-                    FilterArgs= "dotest",
-                },
-                CallBackContractHash= NativeContract.NEO.Hash,
-                CallBackMethod= "unregisterCandidate",
-                OracleFee= 1000L
+                FilterContractHash = UInt160.Zero,
+                FilterMethod = "dotest",
+                FilterArgs = "dotest",
+                CallBackContractHash = NativeContract.NEO.Hash,
+                CallBackMethod = "unregisterCandidate",
+                OracleFee = 1000L
             };
-            var ret_RegisterRequest = Check_RegisterRequest(snapshot, request,out UInt256 requestTxHash,out Transaction tx);
-            ret_RegisterRequest.Result.Should().Be(new VM.Types.Boolean(true));
-            ret_RegisterRequest.State.Should().BeTrue();
+            var ret_Request = Check_Request(snapshot, request, out UInt256 requestTxHash, out Transaction tx);
+            ret_Request.Result.Should().Be(new VM.Types.Boolean(true));
+            ret_Request.State.Should().BeTrue();
         }
 
-        internal static (bool State, StackItem Result) Check_RegisterRequest(StoreView snapshot,OracleHttpRequest request,out UInt256 requestTxHash,out Transaction tx)
+        internal static (bool State, StackItem Result) Check_Request(StoreView snapshot, OracleRequest request, out UInt256 requestTxHash, out Transaction tx)
         {
             snapshot.PersistingBlock = new Block() { Index = 1000 };
             byte[] privateKey = new byte[32];
@@ -68,11 +63,11 @@ namespace Neo.UnitTests.SmartContract.Native
             var script = new ScriptBuilder();
             script.EmitAppCall(NativeContract.Oracle.Hash,
                 ContractParameterType.Boolean,
-                "registerRequest",
+                "request",
                 request.URL.ToString(),
-                request.Filter.ContractHash,
-                request.Filter.FilterMethod,
-                request.Filter.FilterArgs,
+                request.FilterContractHash,
+                request.FilterMethod,
+                request.FilterArgs,
                 request.CallBackContractHash,
                 request.CallBackMethod,
                 request.OracleFee);
@@ -95,7 +90,7 @@ namespace Neo.UnitTests.SmartContract.Native
             byte[] sig = data.Verifiable.Sign(keyPair);
             tx.Witnesses[0].InvocationScript = sig;
             requestTxHash = tx.Hash;
-            ApplicationEngine engine=ApplicationEngine.Run(script.ToArray(), snapshot, tx, null, 0, true);
+            ApplicationEngine engine = ApplicationEngine.Run(script.ToArray(), snapshot, tx, null, 0, true);
             if (engine.State == VMState.FAULT)
             {
                 return (false, false);
@@ -107,7 +102,7 @@ namespace Neo.UnitTests.SmartContract.Native
         }
 
         [TestMethod]
-        public void Check_InvokeCallBackMethod()
+        public void Check_CallBack()
         {
             var snapshot = Blockchain.Singleton.GetSnapshot();
 
@@ -127,22 +122,19 @@ namespace Neo.UnitTests.SmartContract.Native
                 Manifest = manifest
             };
 
-            var request = new OracleHttpRequest()
+            var request = new OracleRequest()
             {
                 URL = new Uri("https://www.baidu.com/"),
-                Filter = new OracleFilter()
-                {
-                    ContractHash = UInt160.Zero,
-                    FilterMethod = "dotest",
-                    FilterArgs = "dotest",
-                },
+                FilterContractHash = UInt160.Zero,
+                FilterMethod = "dotest",
+                FilterArgs = "dotest",
                 CallBackContractHash = file.ScriptHash,
                 CallBackMethod = "test",
                 OracleFee = 1000L
             };
-            var ret_RegisterRequest = Check_RegisterRequest(snapshot, request, out UInt256 requestTxHash,out Transaction tx);
-            ret_RegisterRequest.Result.Should().Be(new VM.Types.Boolean(true));
-            ret_RegisterRequest.State.Should().BeTrue();
+            var ret_Request = Check_Request(snapshot, request, out UInt256 requestTxHash, out Transaction tx);
+            ret_Request.Result.Should().Be(new VM.Types.Boolean(true));
+            ret_Request.State.Should().BeTrue();
             snapshot.Transactions.Add(tx.Hash, new TransactionState() { Transaction = tx, VMState = VMState.HALT, BlockIndex = snapshot.PersistingBlock.Index });
 
 
@@ -157,7 +149,7 @@ namespace Neo.UnitTests.SmartContract.Native
             response.RequestTxHash = requestTxHash;
             response.Result = keyPair.PublicKey.ToArray();
             response.FilterCost = 0;
-            Transaction responsetx=CreateResponseTransaction(snapshot, response);
+            Transaction responsetx = CreateResponseTransaction(snapshot, response);
             Console.WriteLine(responsetx.SystemFee);
 
 
@@ -185,7 +177,7 @@ namespace Neo.UnitTests.SmartContract.Native
 
             var oracleAddress = NativeContract.Oracle.GetOracleMultiSigContract(snapshot);
             ScriptBuilder sb = new ScriptBuilder();
-            sb.EmitAppCall(NativeContract.Oracle.Hash,ContractParameterType.Void, "onPersist");
+            sb.EmitAppCall(NativeContract.Oracle.Hash, ContractParameterType.Void, "onPersist");
 
             var tx = new Transaction()
             {
@@ -218,7 +210,7 @@ namespace Neo.UnitTests.SmartContract.Native
             if (engine.Execute() != VMState.HALT) throw new InvalidOperationException();
 
             var sb2 = new ScriptBuilder();
-            sb2.EmitAppCall(NativeContract.Oracle.Hash, ContractParameterType.Void,"invokeCallBackMethod");
+            sb2.EmitAppCall(NativeContract.Oracle.Hash, ContractParameterType.Void, "callBack");
 
             var state = new TransactionState
             {
