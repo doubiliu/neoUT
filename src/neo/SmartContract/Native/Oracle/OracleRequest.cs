@@ -83,7 +83,8 @@ namespace Neo.SmartContract.Native.Tokens
         public virtual StackItem ToStackItem(ReferenceCounter referenceCounter)
         {
             Struct @struct = new Struct(referenceCounter)
-            { RequestTxHash.ToArray(),
+            { 
+                RequestTxHash.ToArray(),
               FilterContractHash.ToArray(),
               FilterMethod,
               FilterArgs,
