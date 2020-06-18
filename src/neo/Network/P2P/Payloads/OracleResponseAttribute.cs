@@ -9,7 +9,7 @@ namespace Neo.Network.P2P.Payloads
 {
     public class OracleResponseAttribute : TransactionAttribute
     {
-        public OracleResponse response;
+        public OracleResponse Response;
 
         public override int Size => base.Size + UInt256.Length;
 
