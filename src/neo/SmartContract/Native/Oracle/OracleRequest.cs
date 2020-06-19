@@ -7,19 +7,19 @@ using System.Numerics;
 
 namespace Neo.SmartContract.Native.Tokens
 {
-    public class OracleRequest : IInteroperable,ISerializable
+    public class OracleRequest : IInteroperable, ISerializable
     {
         public virtual int Size => UInt256.Length
          + UInt160.Length   //Timestamp
          + FilterMethod.GetVarSize()  //Timestamp
          + FilterArgs.GetVarSize()    // TODO add comments
-         + UInt160.Length 
-         + CallBackMethod.GetVarSize() 
-         + sizeof(uint) 
-         + sizeof(long) 
-         + sizeof(long) 
+         + UInt160.Length
+         + CallBackMethod.GetVarSize()
+         + sizeof(uint)
          + sizeof(long)
-         +URL.ToString().GetVarSize();
+         + sizeof(long)
+         + sizeof(long)
+         + URL.ToString().GetVarSize();
 
         public UInt256 RequestTxHash;
 
@@ -38,7 +38,6 @@ namespace Neo.SmartContract.Native.Tokens
         public long OracleFee;
 
         public Uri URL;
-
 
         public virtual void Serialize(BinaryWriter writer)
         {
@@ -76,14 +75,14 @@ namespace Neo.SmartContract.Native.Tokens
             CallBackContractHash = @struct[4].GetSpan().AsSerializable<UInt160>();
             CallBackMethod = @struct[5].GetString();
             ValidHeight = (uint)@struct[6].GetBigInteger();
-            OracleFee= (long)@struct[7].GetBigInteger();
+            OracleFee = (long)@struct[7].GetBigInteger();
             URL = new Uri(((Struct)stackItem)[8].GetString());
         }
 
         public virtual StackItem ToStackItem(ReferenceCounter referenceCounter)
         {
             Struct @struct = new Struct(referenceCounter)
-            { 
+            {
                 RequestTxHash.ToArray(),
               FilterContractHash.ToArray(),
               FilterMethod,

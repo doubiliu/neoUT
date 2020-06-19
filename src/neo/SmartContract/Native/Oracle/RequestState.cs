@@ -11,16 +11,16 @@ namespace Neo.SmartContract.Native.Tokens
 
         public virtual void FromStackItem(StackItem stackItem)
         {
-            request = new OracleRequest();
-            request.FromStackItem(((Struct)stackItem)[0]);
-            status = (RequestStatusType)((Struct)stackItem)[1].GetSpan().ToArray()[0];
+            Request = new OracleRequest();
+            Request.FromStackItem(((Struct)stackItem)[0]);
+            Status = (RequestStatusType)((Struct)stackItem)[1].GetSpan().ToArray()[0];
         }
 
         public virtual StackItem ToStackItem(ReferenceCounter referenceCounter)
         {
             Struct @struct = new Struct(referenceCounter);
-            @struct.Add(request.ToStackItem(referenceCounter));
-            @struct.Add(new byte[] { (byte)status });
+            @struct.Add(Request.ToStackItem(referenceCounter));
+            @struct.Add(new byte[] { (byte)Status });
             return @struct;
         }
     }
