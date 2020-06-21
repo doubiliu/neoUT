@@ -19,7 +19,7 @@ namespace Neo.SmartContract.Native.Tokens
          + sizeof(long) 
          + sizeof(long) 
          + sizeof(long)
-         +URL.ToString().GetVarSize();
+         + URL.ToString().GetVarSize();
 
         public UInt256 RequestTxHash;
 
