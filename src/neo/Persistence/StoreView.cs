@@ -10,7 +10,7 @@ namespace Neo.Persistence
     /// </summary>
     public abstract class StoreView
     {
-        public Block PersistingBlock { get; set; }
+        public Block PersistingBlock { get; internal set; }
         public abstract DataCache<UInt256, TrimmedBlock> Blocks { get; }
         public abstract DataCache<UInt256, TransactionState> Transactions { get; }
         public abstract DataCache<UInt160, ContractState> Contracts { get; }
