@@ -18,10 +18,8 @@ namespace Neo.SmartContract.Native
     {
         public override string Name => "Oracle";
         public override int Id => -5;
-
         private const byte Prefix_Request = 21;
         private const byte Prefix_Response = 17;
-
 
         public OracleContract()
         {
@@ -135,28 +133,21 @@ namespace Neo.SmartContract.Native
             long GasLeftBeforeCallBack = engine.GasLeft;
             long FilterCost = response.FilterCost;
 
-            engine.CallFromNativeContract(new Action(CallBackDetail), NativeContract.Oracle.Hash, "refund", RequestTxHash.ToArray(), GasLeftBeforeCallBack, FilterCost);
-            engine.CallFromNativeContract(new Action(CallBackDetail), request.Request.CallBackContractHash, request.Request.CallBackMethod, data);
-        }
+            engine.CallFromNativeContract(() =>
+            {
+                long GasLeftAfterCallBack = engine.GasLeft;
+                long CallBackCost = GasLeftBeforeCallBack - GasLeftAfterCallBack;
+                StorageKey key_request = CreateRequestKey(RequestTxHash);
+                RequestState request = engine.Snapshot.Storages.TryGet(key_request)?.GetInteroperable<RequestState>();
+                UInt160[] oracleNodes = GetOracleValidators(engine.Snapshot).Select(p => Contract.CreateSignatureContract(p).ScriptHash).ToArray();
+                long refundGas = request.Request.OracleFee - (FilterCost + GetPerRequestFee(engine.Snapshot)) * oracleNodes.Length - CallBackCost;
 
-        private void CallBackDetail() { }
-
-        [ContractMethod(0_01000000, CallFlags.All)]
-        public void Refund(ApplicationEngine engine, UInt256 RequestTxHash, long GasLeftBeforeCallBack, long FilterCost)
-        {
-            if (engine.CallingScriptHash != NativeContract.Oracle.Hash) throw new InvalidOperationException();
-            long GasLeftAfterCallBack = engine.GasLeft;
-            long CallBackCost = GasLeftBeforeCallBack - GasLeftAfterCallBack;
-            StorageKey key_request = CreateRequestKey(RequestTxHash);
-            RequestState request = engine.Snapshot.Storages.TryGet(key_request)?.GetInteroperable<RequestState>();
-            UInt160[] oracleNodes = GetOracleValidators(engine.Snapshot).Select(p => Contract.CreateSignatureContract(p).ScriptHash).ToArray();
-            long refundGas = request.Request.OracleFee - (FilterCost + GetPerRequestFee(engine.Snapshot)) * oracleNodes.Length - CallBackCost;
-
-            Transaction tx = engine.Snapshot.Transactions.TryGet(RequestTxHash)?.Transaction;
-            UInt160 account = tx.Sender;
-            request = engine.Snapshot.Storages.GetAndChange(key_request).GetInteroperable<RequestState>();
-            request.Status = RequestStatusType.SUCCESSED;
-            if (refundGas > 0) NativeContract.GAS.Mint(engine, account, refundGas);
+                Transaction tx = engine.Snapshot.Transactions.TryGet(RequestTxHash)?.Transaction;
+                UInt160 account = tx.Sender;
+                request = engine.Snapshot.Storages.GetAndChange(key_request).GetInteroperable<RequestState>();
+                request.Status = RequestStatusType.SUCCESSED;
+                if (refundGas > 0) NativeContract.GAS.Mint(engine, account, refundGas);
+            }, request.Request.CallBackContractHash, request.Request.CallBackMethod, data);
         }
 
         protected override void OnPersist(ApplicationEngine engine)

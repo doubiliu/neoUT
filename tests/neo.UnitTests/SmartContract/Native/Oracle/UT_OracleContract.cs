@@ -62,7 +62,6 @@ namespace Neo.UnitTests.SmartContract.Native
 
             var script = new ScriptBuilder();
             script.EmitAppCall(NativeContract.Oracle.Hash,
-                ContractParameterType.Boolean,
                 "request",
                 request.URL.ToString(),
                 request.FilterContractHash,
@@ -151,8 +150,6 @@ namespace Neo.UnitTests.SmartContract.Native
             response.FilterCost = 0;
             Transaction responsetx = CreateResponseTransaction(snapshot, response);
             Console.WriteLine(responsetx.SystemFee);
-
-
         }
 
         private static Transaction CreateResponseTransaction(StoreView initsnapshot, OracleResponse response)
@@ -177,7 +174,7 @@ namespace Neo.UnitTests.SmartContract.Native
 
             var oracleAddress = NativeContract.Oracle.GetOracleMultiSigContract(snapshot);
             ScriptBuilder sb = new ScriptBuilder();
-            sb.EmitAppCall(NativeContract.Oracle.Hash, ContractParameterType.Void, "onPersist");
+            sb.EmitAppCall(NativeContract.Oracle.Hash,"onPersist");
 
             var tx = new Transaction()
             {
@@ -210,7 +207,7 @@ namespace Neo.UnitTests.SmartContract.Native
             if (engine.Execute() != VMState.HALT) throw new InvalidOperationException();
 
             var sb2 = new ScriptBuilder();
-            sb2.EmitAppCall(NativeContract.Oracle.Hash, ContractParameterType.Void, "callBack");
+            sb2.EmitAppCall(NativeContract.Oracle.Hash,"callBack");
 
             var state = new TransactionState
             {
@@ -221,7 +218,7 @@ namespace Neo.UnitTests.SmartContract.Native
 
             var engine2 = ApplicationEngine.Run(sb2.ToArray(), snapshot, tx, testMode: true);
             if (engine2.State != VMState.HALT) throw new ApplicationException();
-            tx.SystemFee = engine.GasConsumed;
+            tx.SystemFee = engine2.GasConsumed;
             // Calculate network fee
             int size = tx.Size;
             tx.NetworkFee += Wallet.CalculateNetworkFee(oracleAddress.Script, ref size);
