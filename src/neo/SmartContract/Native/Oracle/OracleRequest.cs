@@ -10,8 +10,6 @@ namespace Neo.SmartContract.Native.Tokens
     public class OracleRequest : IInteroperable, ISerializable
     {
         public virtual int Size => UInt256.Length
-         + UInt160.Length   //Timestamp
-         + FilterMethod.GetVarSize()  //Timestamp
          + FilterArgs.GetVarSize()    // TODO add comments
          + UInt160.Length
          + CallBackMethod.GetVarSize()
@@ -22,10 +20,6 @@ namespace Neo.SmartContract.Native.Tokens
          + URL.ToString().GetVarSize();
 
         public UInt256 RequestTxHash;
-
-        public UInt160 FilterContractHash;
-
-        public string FilterMethod;
 
         public string FilterArgs;
 
@@ -42,8 +36,6 @@ namespace Neo.SmartContract.Native.Tokens
         public virtual void Serialize(BinaryWriter writer)
         {
             writer.Write(RequestTxHash);
-            writer.Write(FilterContractHash);
-            writer.WriteVarString(FilterMethod);
             writer.WriteVarString(FilterArgs);
             writer.Write(CallBackContractHash);
             writer.WriteVarString(CallBackMethod);
@@ -55,8 +47,6 @@ namespace Neo.SmartContract.Native.Tokens
         public virtual void Deserialize(BinaryReader reader)
         {
             RequestTxHash = new UInt256(reader.ReadBytes(UInt160.Length));
-            FilterContractHash = new UInt160(reader.ReadBytes(UInt160.Length));
-            FilterMethod = reader.ReadVarString();
             FilterArgs = reader.ReadVarString();
             CallBackContractHash = new UInt160(reader.ReadBytes(UInt160.Length));
             CallBackMethod = reader.ReadVarString();
@@ -69,14 +59,12 @@ namespace Neo.SmartContract.Native.Tokens
         {
             Struct @struct = (Struct)stackItem;
             RequestTxHash = @struct[0].GetSpan().AsSerializable<UInt256>();
-            FilterContractHash = @struct[1].GetSpan().AsSerializable<UInt160>();
-            FilterMethod = @struct[2].GetString();
-            FilterArgs = @struct[3].GetString();
-            CallBackContractHash = @struct[4].GetSpan().AsSerializable<UInt160>();
-            CallBackMethod = @struct[5].GetString();
-            ValidHeight = (uint)@struct[6].GetBigInteger();
-            OracleFee = (long)@struct[7].GetBigInteger();
-            URL = new Uri(((Struct)stackItem)[8].GetString());
+            FilterArgs = @struct[1].GetString();
+            CallBackContractHash = @struct[2].GetSpan().AsSerializable<UInt160>();
+            CallBackMethod = @struct[3].GetString();
+            ValidHeight = (uint)@struct[4].GetBigInteger();
+            OracleFee = (long)@struct[5].GetBigInteger();
+            URL = new Uri(((Struct)stackItem)[6].GetString());
         }
 
         public virtual StackItem ToStackItem(ReferenceCounter referenceCounter)
@@ -84,8 +72,6 @@ namespace Neo.SmartContract.Native.Tokens
             Struct @struct = new Struct(referenceCounter)
             {
                 RequestTxHash.ToArray(),
-              FilterContractHash.ToArray(),
-              FilterMethod,
               FilterArgs,
               CallBackContractHash.ToArray(),
               CallBackMethod,

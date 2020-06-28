@@ -19,12 +19,12 @@ namespace Neo.Network.P2P.Payloads
 
         protected override void DeserializeWithoutType(BinaryReader reader)
         {
-            response = reader.ReadSerializable<OracleResponse>();
+            Response = reader.ReadSerializable<OracleResponse>();
         }
 
         protected override void SerializeWithoutType(BinaryWriter writer)
         {
-            writer.Write(response);
+            writer.Write(Response);
         }
     }
 }

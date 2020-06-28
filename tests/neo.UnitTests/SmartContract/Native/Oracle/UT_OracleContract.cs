@@ -37,8 +37,6 @@ namespace Neo.UnitTests.SmartContract.Native
             var request = new OracleRequest()
             {
                 URL = new Uri("https://www.baidu.com/"),
-                FilterContractHash = UInt160.Zero,
-                FilterMethod = "dotest",
                 FilterArgs = "dotest",
                 CallBackContractHash = NativeContract.NEO.Hash,
                 CallBackMethod = "unregisterCandidate",
@@ -64,8 +62,6 @@ namespace Neo.UnitTests.SmartContract.Native
             script.EmitAppCall(NativeContract.Oracle.Hash,
                 "request",
                 request.URL.ToString(),
-                request.FilterContractHash,
-                request.FilterMethod,
                 request.FilterArgs,
                 request.CallBackContractHash,
                 request.CallBackMethod,
@@ -124,8 +120,6 @@ namespace Neo.UnitTests.SmartContract.Native
             var request = new OracleRequest()
             {
                 URL = new Uri("https://www.baidu.com/"),
-                FilterContractHash = UInt160.Zero,
-                FilterMethod = "dotest",
                 FilterArgs = "dotest",
                 CallBackContractHash = file.ScriptHash,
                 CallBackMethod = "test",
@@ -189,7 +183,7 @@ namespace Neo.UnitTests.SmartContract.Native
                     },
                     new OracleResponseAttribute()
                     {
-                         response = response,
+                         Response = response,
                     }
                 },
                 Sender = oracleAddress.ScriptHash,

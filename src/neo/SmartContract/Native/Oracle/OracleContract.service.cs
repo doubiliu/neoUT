@@ -1,6 +1,3 @@
-#pragma warning disable IDE0051
-#pragma warning disable IDE0060
-
 using Neo.IO;
 using Neo.Ledger;
 using Neo.Network.P2P.Payloads;
@@ -45,7 +42,7 @@ namespace Neo.SmartContract.Native
         }
 
         [ContractMethod(0_01000000, CallFlags.All)]
-        public bool Request(ApplicationEngine engine, string urlstring, UInt160 filterContractHash, string filterContractMethod, string filterArgs, UInt160 callBackContractHash, string callBackMethod, long oracleFee)
+        public bool Request(ApplicationEngine engine, string urlstring,string filterArgs, UInt160 callBackContractHash, string callBackMethod, long oracleFee)
         {
             if (!Uri.TryCreate(urlstring, UriKind.Absolute, out var url)) throw new ArgumentException();
             // Create request
@@ -58,8 +55,6 @@ namespace Neo.SmartContract.Native
                         request = new OracleRequest()
                         {
                             URL = url,
-                            FilterContractHash = filterContractHash,
-                            FilterMethod = filterContractMethod,
                             FilterArgs = filterArgs,
                             CallBackContractHash = callBackContractHash,
                             CallBackMethod = callBackMethod,
@@ -122,7 +117,7 @@ namespace Neo.SmartContract.Native
             Transaction tx = (Transaction)engine.ScriptContainer;
             TransactionAttribute attribute = tx.Attributes.Where(p => p is OracleResponseAttribute).FirstOrDefault();
             if (attribute is null) throw new InvalidOperationException();
-            OracleResponse response = ((OracleResponseAttribute)attribute).response;
+            OracleResponse response = ((OracleResponseAttribute)attribute).Response;
             UInt256 RequestTxHash = response.RequestTxHash;
             StorageKey key_request = CreateRequestKey(RequestTxHash);
             RequestState request = engine.Snapshot.Storages.TryGet(key_request)?.GetInteroperable<RequestState>();
@@ -158,7 +153,7 @@ namespace Neo.SmartContract.Native
                 TransactionAttribute attribute = tx.Attributes.Where(p => p is OracleResponseAttribute).FirstOrDefault();
                 if (attribute is null) continue;
                 if (tx.Sender != GetOracleMultiSigAddress(engine.Snapshot)) throw new InvalidOperationException();
-                OracleResponse response = ((OracleResponseAttribute)attribute).response;
+                OracleResponse response = ((OracleResponseAttribute)attribute).Response;
                 if (Response(engine, response))
                 {
                     UInt160[] oracleNodes = GetOracleValidators(engine.Snapshot).Select(p => Contract.CreateSignatureContract(p).ScriptHash).ToArray();
