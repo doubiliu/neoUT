@@ -19,11 +19,6 @@ namespace Neo.SmartContract.Native
         internal const byte Prefix_ValidHeight = 19;
 
         [ContractMethod(0_01000000, CallFlags.AllowStates)]
-        public StackItem GetOracleValidators(ApplicationEngine engine, VM.Types.Array args)
-        {
-            return new VM.Types.Array(engine.ReferenceCounter, GetOracleValidators(engine.Snapshot).Select(p => (StackItem)p.ToArray()));
-        }
-
         public ECPoint[] GetOracleValidators(StoreView snapshot)
         {
             ECPoint[] cnPubKeys = NEO.GetValidators(snapshot);
@@ -40,12 +35,6 @@ namespace Neo.SmartContract.Native
         }
 
         [ContractMethod(0_01000000, CallFlags.AllowStates)]
-        public int GetOracleValidatorsCount(ApplicationEngine engine, VM.Types.Array args)
-        {
-            return GetOracleValidatorsCount(engine.Snapshot);
-        }
-
-        /// <returns>The number of authorized Oracle validator</returns>
         public int GetOracleValidatorsCount(StoreView snapshot)
         {
             return GetOracleValidators(snapshot).Length;
@@ -63,7 +52,7 @@ namespace Neo.SmartContract.Native
         }
 
         [ContractMethod(0_03000000, CallFlags.AllowModifyStates)]
-        private StackItem SetConfig(ApplicationEngine engine, VM.Types.Array args)
+        private bool SetConfig(ApplicationEngine engine, VM.Types.Array args)
         {
             StoreView snapshot = engine.Snapshot;
             UInt160 account = GetOracleMultiSigAddress(snapshot);
@@ -103,12 +92,11 @@ namespace Neo.SmartContract.Native
         }
 
         [ContractMethod(0_03000000, CallFlags.AllowModifyStates)]
-        private StackItem SetPerRequestFee(ApplicationEngine engine, VM.Types.Array args)
+        public bool SetPerRequestFee(ApplicationEngine engine, int perRequestFee)
         {
             StoreView snapshot = engine.Snapshot;
             UInt160 account = GetOracleMultiSigAddress(snapshot);
             if (!engine.CheckWitnessInternal(account)) return false;
-            int perRequestFee = (int)args[0].GetBigInteger();
             if (perRequestFee <= 0) return false;
             StorageItem storage = snapshot.Storages.GetAndChange(CreateStorageKey(Prefix_PerRequestFee));
             storage.Value = BitConverter.GetBytes(perRequestFee);
@@ -116,11 +104,6 @@ namespace Neo.SmartContract.Native
         }
 
         [ContractMethod(0_01000000, CallFlags.AllowStates)]
-        public StackItem GetPerRequestFee(ApplicationEngine engine, VM.Types.Array args)
-        {
-            return GetPerRequestFee(engine.Snapshot);
-        }
-
         public long GetPerRequestFee(StoreView snapshot)
         {
             StorageItem storage = snapshot.Storages.TryGet(CreateStorageKey(Prefix_PerRequestFee));
@@ -129,23 +112,17 @@ namespace Neo.SmartContract.Native
         }
 
         [ContractMethod(0_03000000, CallFlags.AllowModifyStates)]
-        private StackItem SetValidHeight(ApplicationEngine engine, VM.Types.Array args)
+        public bool SetValidHeight(ApplicationEngine engine, uint ValidHeight)
         {
             StoreView snapshot = engine.Snapshot;
             UInt160 account = GetOracleMultiSigAddress(snapshot);
             if (!engine.CheckWitnessInternal(account)) return false;
-            uint ValidHeight = (uint)args[0].GetBigInteger();
             StorageItem storage = snapshot.Storages.GetAndChange(CreateStorageKey(Prefix_ValidHeight));
             storage.Value = BitConverter.GetBytes(ValidHeight);
             return true;
         }
 
         [ContractMethod(0_01000000, CallFlags.AllowStates)]
-        public uint GetValidHeight(ApplicationEngine engine, VM.Types.Array args)
-        {
-            return GetValidHeight(engine.Snapshot);
-        }
-
         public uint GetValidHeight(StoreView snapshot)
         {
             StorageItem storage = snapshot.Storages.TryGet(CreateStorageKey(Prefix_ValidHeight));

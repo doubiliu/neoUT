@@ -14,7 +14,6 @@ using Neo.Wallets;
 using System;
 using System.IO;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace Neo.UnitTests.SmartContract.Native
 {
@@ -100,29 +99,24 @@ namespace Neo.UnitTests.SmartContract.Native
         public void Check_CallBack()
         {
             var snapshot = Blockchain.Singleton.GetSnapshot();
-
-            var manifestFilePath = "./ContractDemo.manifest.json";
-            var manifest = ContractManifest.Parse(File.ReadAllBytes(manifestFilePath));
-            var nefFilePath = "./ContractDemo.nef";
-            NefFile file;
-            using (var stream = new BinaryReader(File.OpenRead(nefFilePath), Encoding.UTF8, false))
-            {
-                file = stream.ReadSerializable<NefFile>();
-            }
-
+            string manifestString = "7b2267726f757073223a5b5d2c226665617475726573223a7b2273746f72616765223a747275652c2270617961626c65223a747275657d2c22616269223a7b0a202020202268617368223a22307831303633323632353734653666636432333636653632633539666663616130383531623232343836222c0a20202020226d6574686f6473223a0a202020205b0a20202020202020207b0a202020202020202020202020226e616d65223a227465737431222c0a202020202020202020202020226f6666736574223a2230222c0a20202020202020202020202022706172616d6574657273223a0a2020202020202020202020205b0a202020202020202020202020202020207b0a2020202020202020202020202020202020202020226e616d65223a2264617461222c0a20202020202020202020202020202020202020202274797065223a22427974654172726179220a202020202020202020202020202020207d0a2020202020202020202020205d2c0a2020202020202020202020202272657475726e54797065223a22426f6f6c65616e220a20202020202020207d0a202020205d2c0a20202020226576656e7473223a0a202020205b0a202020205d0a7d2c227065726d697373696f6e73223a5b7b22636f6e7472616374223a222a222c226d6574686f6473223a222a227d5d2c22747275737473223a5b5d2c22736166654d6574686f6473223a5b5d2c226578747261223a6e756c6c7d";
+            var manifest = ContractManifest.Parse(manifestString.HexToBytes());
+            var nefFileString = "4e4546336e656f6e00000000000000000000000000000000000000000000000000000000030000000000000000000000000000008624b25108aafc9fc5626e36d2fce67425266310d47370510757010111706840";
+            NefFile file = new NefFile();
+            file.Deserialize(new BinaryReader(new MemoryStream(nefFileString.HexToBytes())));
             ContractState contract = new ContractState
             {
-                Id = snapshot.ContractId.GetAndChange().NextId++,
-                Script = file.Script,
-                Manifest = manifest
+               Id = snapshot.ContractId.GetAndChange().NextId++,
+               Script = file.Script,
+               Manifest = manifest
             };
 
             var request = new OracleRequest()
             {
                 URL = new Uri("https://www.baidu.com/"),
                 FilterArgs = "dotest",
-                CallBackContractHash = file.ScriptHash,
-                CallBackMethod = "test",
+                CallBackContractHash = contract.ScriptHash,
+                CallBackMethod = "test1",
                 OracleFee = 1000L
             };
             var ret_Request = Check_Request(snapshot, request, out UInt256 requestTxHash, out Transaction tx);
@@ -149,14 +143,11 @@ namespace Neo.UnitTests.SmartContract.Native
         private static Transaction CreateResponseTransaction(StoreView initsnapshot, OracleResponse response)
         {
             StoreView snapshot = initsnapshot.Clone();
-            var manifestFilePath = "./ContractDemo.manifest.json";
-            var manifest = ContractManifest.Parse(File.ReadAllBytes(manifestFilePath));
-            var nefFilePath = "./ContractDemo.nef";
-            NefFile file;
-            using (var stream = new BinaryReader(File.OpenRead(nefFilePath), Encoding.UTF8, false))
-            {
-                file = stream.ReadSerializable<NefFile>();
-            }
+            string manifestString = "7b2267726f757073223a5b5d2c226665617475726573223a7b2273746f72616765223a747275652c2270617961626c65223a747275657d2c22616269223a7b0a202020202268617368223a22307831303633323632353734653666636432333636653632633539666663616130383531623232343836222c0a20202020226d6574686f6473223a0a202020205b0a20202020202020207b0a202020202020202020202020226e616d65223a227465737431222c0a202020202020202020202020226f6666736574223a2230222c0a20202020202020202020202022706172616d6574657273223a0a2020202020202020202020205b0a202020202020202020202020202020207b0a2020202020202020202020202020202020202020226e616d65223a2264617461222c0a20202020202020202020202020202020202020202274797065223a22427974654172726179220a202020202020202020202020202020207d0a2020202020202020202020205d2c0a2020202020202020202020202272657475726e54797065223a22426f6f6c65616e220a20202020202020207d0a202020205d2c0a20202020226576656e7473223a0a202020205b0a202020205d0a7d2c227065726d697373696f6e73223a5b7b22636f6e7472616374223a222a222c226d6574686f6473223a222a227d5d2c22747275737473223a5b5d2c22736166654d6574686f6473223a5b5d2c226578747261223a6e756c6c7d";
+            var manifest = ContractManifest.Parse(manifestString.HexToBytes());
+            var nefFileString = "4e4546336e656f6e00000000000000000000000000000000000000000000000000000000030000000000000000000000000000008624b25108aafc9fc5626e36d2fce67425266310d47370510757010111706840";
+            NefFile file = new NefFile();
+            file.Deserialize(new BinaryReader(new MemoryStream(nefFileString.HexToBytes())));
 
             ContractState contract = new ContractState
             {
