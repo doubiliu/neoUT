@@ -55,8 +55,8 @@ namespace Neo.SmartContract.Native
                         request = new OracleRequest()
                         {
                             URL = url,
-                            FilterArgs = filterArgs,
-                            CallBackContractHash = callBackContractHash,
+                            FilterPath = filterArgs,
+                            CallBackContract = callBackContractHash,
                             CallBackMethod = callBackMethod,
                             OracleFee = oracleFee,
                             Status=RequestStatusType.REQUEST
@@ -137,7 +137,7 @@ namespace Neo.SmartContract.Native
                 request = engine.Snapshot.Storages.GetAndChange(key_request).GetInteroperable<OracleRequest>();
                 request.Status = RequestStatusType.SUCCESSED;
                 if (refundGas > 0) NativeContract.GAS.Mint(engine, account, refundGas);
-            }, request.CallBackContractHash, request.CallBackMethod, data);
+            }, request.CallBackContract, request.CallBackMethod, data);
         }
 
         protected override void OnPersist(ApplicationEngine engine)
@@ -167,11 +167,6 @@ namespace Neo.SmartContract.Native
         private StorageKey CreateRequestKey(UInt256 requestTxHash)
         {
             return CreateStorageKey(Prefix_Request, requestTxHash.ToArray());
-        }
-
-        private StorageKey CreateResponseKey(UInt256 requestTxHash)
-        {
-            return CreateStorageKey(Prefix_Response, requestTxHash.ToArray());
         }
     }
 }

@@ -15,7 +15,7 @@ namespace Neo.SmartContract.Native
         internal const byte Prefix_Validator = 24;
         internal const byte Prefix_Config = 17;
         internal const byte Prefix_PerRequestFee = 21;
-        internal const byte Prefix_ValidHeight = 19;
+        internal const byte Prefix_RequestMaxValidHeight = 19;
 
         [ContractMethod(0_01000000, CallFlags.AllowStates)]
         public ECPoint[] GetOracleValidators(StoreView snapshot)
@@ -111,7 +111,7 @@ namespace Neo.SmartContract.Native
             StoreView snapshot = engine.Snapshot;
             UInt160 account = GetOracleMultiSigAddress(snapshot);
             if (!engine.CheckWitnessInternal(account)) return false;
-            StorageItem storage = snapshot.Storages.GetAndChange(CreateStorageKey(Prefix_ValidHeight), () => new StorageItem() { Value = BitConverter.GetBytes(ValidHeight) });
+            StorageItem storage = snapshot.Storages.GetAndChange(CreateStorageKey(Prefix_RequestMaxValidHeight), () => new StorageItem() { Value = BitConverter.GetBytes(ValidHeight) });
             storage.Value = BitConverter.GetBytes(ValidHeight);
             return true;
         }
@@ -119,7 +119,7 @@ namespace Neo.SmartContract.Native
         [ContractMethod(0_01000000, CallFlags.AllowStates)]
         public uint GetValidHeight(StoreView snapshot)
         {
-            StorageItem storage = snapshot.Storages.TryGet(CreateStorageKey(Prefix_ValidHeight));
+            StorageItem storage = snapshot.Storages.TryGet(CreateStorageKey(Prefix_RequestMaxValidHeight));
             if (storage is null) return 0;
             return BitConverter.ToUInt32(storage.Value);
         }

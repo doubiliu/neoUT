@@ -300,8 +300,8 @@ namespace Neo.UnitTests.SmartContract.Native
             var request = new OracleRequest()
             {
                 URL = new Uri("https://www.baidu.com/"),
-                FilterArgs = "dotest",
-                CallBackContractHash = NativeContract.NEO.Hash,
+                FilterPath = "dotest",
+                CallBackContract = NativeContract.NEO.Hash,
                 CallBackMethod = "unregisterCandidate",
                 OracleFee = 1000L
             };
@@ -325,8 +325,8 @@ namespace Neo.UnitTests.SmartContract.Native
             script.EmitAppCall(NativeContract.Oracle.Hash,
                 "request",
                 request.URL.ToString(),
-                request.FilterArgs,
-                request.CallBackContractHash,
+                request.FilterPath,
+                request.CallBackContract,
                 request.CallBackMethod,
                 request.OracleFee);
 
@@ -378,8 +378,8 @@ namespace Neo.UnitTests.SmartContract.Native
             var request = new OracleRequest()
             {
                 URL = new Uri("https://www.baidu.com/"),
-                FilterArgs = "dotest",
-                CallBackContractHash = contract.ScriptHash,
+                FilterPath = "dotest",
+                CallBackContract = contract.ScriptHash,
                 CallBackMethod = "test1",
                 OracleFee = 1000L
             };

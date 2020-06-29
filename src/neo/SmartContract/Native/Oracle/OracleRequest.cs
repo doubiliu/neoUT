@@ -3,14 +3,13 @@ using Neo.VM;
 using Neo.VM.Types;
 using System;
 using System.IO;
-using System.Numerics;
 
 namespace Neo.SmartContract.Native.Tokens
 {
     public class OracleRequest : IInteroperable, ISerializable
     {
         public virtual int Size => UInt256.Length
-         + FilterArgs.GetVarSize()    // TODO add comments
+         + FilterPath.GetVarSize()
          + UInt160.Length
          + CallBackMethod.GetVarSize()
          + sizeof(uint)
@@ -22,9 +21,9 @@ namespace Neo.SmartContract.Native.Tokens
 
         public UInt256 RequestTxHash;
 
-        public string FilterArgs;
+        public string FilterPath;
 
-        public UInt160 CallBackContractHash;
+        public UInt160 CallBackContract;
 
         public string CallBackMethod;
 
@@ -39,8 +38,8 @@ namespace Neo.SmartContract.Native.Tokens
         public virtual void Serialize(BinaryWriter writer)
         {
             writer.Write(RequestTxHash);
-            writer.WriteVarString(FilterArgs);
-            writer.Write(CallBackContractHash);
+            writer.WriteVarString(FilterPath);
+            writer.Write(CallBackContract);
             writer.WriteVarString(CallBackMethod);
             writer.Write(ValidHeight);
             writer.Write(OracleFee);
@@ -51,8 +50,8 @@ namespace Neo.SmartContract.Native.Tokens
         public virtual void Deserialize(BinaryReader reader)
         {
             RequestTxHash = new UInt256(reader.ReadBytes(UInt160.Length));
-            FilterArgs = reader.ReadVarString();
-            CallBackContractHash = new UInt160(reader.ReadBytes(UInt160.Length));
+            FilterPath = reader.ReadVarString();
+            CallBackContract = new UInt160(reader.ReadBytes(UInt160.Length));
             CallBackMethod = reader.ReadVarString();
             ValidHeight = reader.ReadUInt32();
             OracleFee = reader.ReadInt64();
@@ -64,8 +63,8 @@ namespace Neo.SmartContract.Native.Tokens
         {
             Struct @struct = (Struct)stackItem;
             RequestTxHash = @struct[0].GetSpan().AsSerializable<UInt256>();
-            FilterArgs = @struct[1].GetString();
-            CallBackContractHash = @struct[2].GetSpan().AsSerializable<UInt160>();
+            FilterPath = @struct[1].GetString();
+            CallBackContract = @struct[2].GetSpan().AsSerializable<UInt160>();
             CallBackMethod = @struct[3].GetString();
             ValidHeight = (uint)@struct[4].GetInteger();
             OracleFee = (long)@struct[5].GetInteger();
@@ -78,8 +77,8 @@ namespace Neo.SmartContract.Native.Tokens
             Struct @struct = new Struct(referenceCounter)
             {
                 RequestTxHash.ToArray(),
-              FilterArgs,
-              CallBackContractHash.ToArray(),
+              FilterPath,
+              CallBackContract.ToArray(),
               CallBackMethod,
               ValidHeight,
               OracleFee,
