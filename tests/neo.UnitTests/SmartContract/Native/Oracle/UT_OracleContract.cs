@@ -3,17 +3,23 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Neo.IO;
 using Neo.Ledger;
 using Neo.Network.P2P.Payloads;
+using Neo.Cryptography.ECC;
 using Neo.Persistence;
 using Neo.SmartContract;
 using Neo.SmartContract.Manifest;
 using Neo.SmartContract.Native;
+using Neo.SmartContract.Native.Oracle;
 using Neo.SmartContract.Native.Tokens;
 using Neo.VM;
 using Neo.VM.Types;
 using Neo.Wallets;
+using Newtonsoft.Json;
 using System;
 using System.IO;
+using System.Numerics;
 using System.Security.Cryptography;
+using static Neo.UnitTests.Extensions.Nep5NativeContractExtensions;
+using ECPoint = Neo.Cryptography.ECC.ECPoint;
 
 namespace Neo.UnitTests.SmartContract.Native
 {
@@ -27,6 +33,267 @@ namespace Neo.UnitTests.SmartContract.Native
         {
             TestBlockchain.InitializeMockNeoSystem();
             test = NativeContract.Oracle;
+        }
+
+        internal static StorageKey CreateStorageKey(byte prefix, byte[] key = null)
+        {
+            StorageKey storageKey = new StorageKey
+            {
+                Id = NativeContract.Oracle.Id,
+                Key = new byte[sizeof(byte) + (key?.Length ?? 0)]
+            };
+            storageKey.Key[0] = prefix;
+            key?.CopyTo(storageKey.Key.AsSpan(1));
+            return storageKey;
+        }
+
+        [TestMethod]
+        public void Test_GetPerRequestFee()
+        {
+            var snapshot = Blockchain.Singleton.GetSnapshot();
+            var script = new ScriptBuilder();
+            script.EmitAppCall(NativeContract.Oracle.Hash, "getPerRequestFee");
+            var engine = new ApplicationEngine(TriggerType.Application, null, snapshot, 0, true);
+            engine.LoadScript(script.ToArray());
+
+            engine.Execute().Should().Be(VMState.HALT);
+            var result = engine.ResultStack.Pop();
+            result.Should().BeOfType(typeof(VM.Types.Integer));
+            Assert.AreEqual(result, 0);
+        }
+
+        [TestMethod]
+        public void Test_SetPerRequestFee()
+        {
+            var snapshot = Blockchain.Singleton.GetSnapshot().Clone();
+
+            // Init
+            var engine = new ApplicationEngine(TriggerType.Application, null, snapshot, 0, true);
+            var from = NativeContract.Oracle.GetOracleMultiSigAddress(snapshot);
+            long value = 12345;
+
+            // Set 
+            var script = new ScriptBuilder();
+            script.EmitAppCall(NativeContract.Oracle.Hash, "setPerRequestFee", value);
+            engine = new ApplicationEngine(TriggerType.Application, new ManualWitness(from), snapshot, 0, true);
+            engine.LoadScript(script.ToArray());
+
+            engine.Execute().Should().Be(VMState.HALT);
+            var result = engine.ResultStack.Pop();
+            result.Should().BeOfType(typeof(VM.Types.Boolean));
+            Assert.IsTrue((result as VM.Types.Boolean).ToBoolean());
+
+            // Set (wrong witness)
+            script = new ScriptBuilder();
+            script.EmitAppCall(NativeContract.Oracle.Hash, "setPerRequestFee", value);
+            engine = new ApplicationEngine(TriggerType.Application, new ManualWitness(null), snapshot, 0, true);
+            engine.LoadScript(script.ToArray());
+
+            engine.Execute().Should().Be(VMState.HALT);
+            result = engine.ResultStack.Pop();
+            result.Should().BeOfType(typeof(VM.Types.Boolean));
+            Assert.IsFalse((result as VM.Types.Boolean).ToBoolean());
+
+            // Set wrong (negative)
+            script = new ScriptBuilder();
+            script.EmitAppCall(NativeContract.Oracle.Hash, "setPerRequestFee", -1);
+            engine = new ApplicationEngine(TriggerType.Application, new ManualWitness(from), snapshot, 0, true);
+            engine.LoadScript(script.ToArray());
+
+            engine.Execute().Should().Be(VMState.HALT);
+            result = engine.ResultStack.Pop();
+            result.Should().BeOfType(typeof(VM.Types.Boolean));
+            Assert.IsFalse((result as VM.Types.Boolean).ToBoolean());
+
+            // Get
+            script = new ScriptBuilder();
+            script.EmitAppCall(NativeContract.Oracle.Hash, "getPerRequestFee");
+            engine = new ApplicationEngine(TriggerType.Application, null, snapshot, 0, true);
+            engine.LoadScript(script.ToArray());
+
+            engine.Execute().Should().Be(VMState.HALT);
+            result = engine.ResultStack.Pop();
+            result.Should().BeOfType(typeof(VM.Types.Integer));
+            Assert.AreEqual(result, value);
+        }
+
+        [TestMethod]
+        public void Test_GetValidHeight()
+        {
+            var snapshot = Blockchain.Singleton.GetSnapshot();
+            var script = new ScriptBuilder();
+            script.EmitAppCall(NativeContract.Oracle.Hash, "getValidHeight");
+            var engine = new ApplicationEngine(TriggerType.Application, null, snapshot, 0, true);
+            engine.LoadScript(script.ToArray());
+
+            engine.Execute().Should().Be(VMState.HALT);
+            var result = engine.ResultStack.Pop();
+            result.Should().BeOfType(typeof(VM.Types.Integer));
+            Assert.AreEqual(result, 0);
+        }
+
+        [TestMethod]
+        public void Test_SetValidHeight()
+        {
+            var snapshot = Blockchain.Singleton.GetSnapshot().Clone();
+
+            // Init
+            var engine = new ApplicationEngine(TriggerType.Application, null, snapshot, 0, true);
+            var from = NativeContract.Oracle.GetOracleMultiSigAddress(snapshot);
+            uint value = 123;
+
+            // Set 
+            var script = new ScriptBuilder();
+            script.EmitAppCall(NativeContract.Oracle.Hash, "setValidHeight", value);
+            engine = new ApplicationEngine(TriggerType.Application, new ManualWitness(from), snapshot, 0, true);
+            engine.LoadScript(script.ToArray());
+
+            engine.Execute().Should().Be(VMState.HALT);
+            var result = engine.ResultStack.Pop();
+            result.Should().BeOfType(typeof(VM.Types.Boolean));
+            Assert.IsTrue((result as VM.Types.Boolean).ToBoolean());
+
+            // Set (wrong witness)
+            script = new ScriptBuilder();
+            script.EmitAppCall(NativeContract.Oracle.Hash, "setValidHeight", value);
+            engine = new ApplicationEngine(TriggerType.Application, new ManualWitness(null), snapshot, 0, true);
+            engine.LoadScript(script.ToArray());
+
+            engine.Execute().Should().Be(VMState.HALT);
+            result = engine.ResultStack.Pop();
+            result.Should().BeOfType(typeof(VM.Types.Boolean));
+            Assert.IsFalse((result as VM.Types.Boolean).ToBoolean());
+
+            // Get
+            script = new ScriptBuilder();
+            script.EmitAppCall(NativeContract.Oracle.Hash, "getValidHeight");
+            engine = new ApplicationEngine(TriggerType.Application, null, snapshot, 0, true);
+            engine.LoadScript(script.ToArray());
+
+            engine.Execute().Should().Be(VMState.HALT);
+            result = engine.ResultStack.Pop();
+            result.Should().BeOfType(typeof(VM.Types.Integer));
+            Assert.AreEqual(result, value);
+        }
+
+        [TestMethod]
+        public void Test_GetHttpConfig()
+        {
+            var snapshot = Blockchain.Singleton.GetSnapshot();
+            var script = new ScriptBuilder();
+            script.EmitAppCall(NativeContract.Oracle.Hash, "getConfig", HttpConfig.Key);
+            var engine = new ApplicationEngine(TriggerType.Application, null, snapshot, 0, true);
+            engine.LoadScript(script.ToArray());
+
+            engine.Execute().Should().Be(VMState.HALT);
+            var result = engine.ResultStack.Pop();
+            result.Should().BeOfType(typeof(VM.Types.Array));
+
+            var cfg = new HttpConfig();
+            cfg.FromStackItem(result);
+
+            Assert.AreEqual(cfg.TimeOut, 5000);
+        }
+
+        [TestMethod]
+        public void Test_SetConfig()
+        {
+            var snapshot = Blockchain.Singleton.GetSnapshot().Clone();
+
+            // Init
+            var engine = new ApplicationEngine(TriggerType.Application, null, snapshot, 0, true);
+            var from = NativeContract.Oracle.GetOracleMultiSigAddress(snapshot);
+            var key = HttpConfig.Key;
+            var value = new HttpConfig() { TimeOut = 12345 };
+            var data = JsonConvert.SerializeObject(value);
+
+            // Set (wrong witness)
+            var script = new ScriptBuilder();
+            script.EmitAppCall(NativeContract.Oracle.Hash, "setConfig", key, data);
+            engine = new ApplicationEngine(TriggerType.Application, new ManualWitness(null), snapshot, 0, true);
+            engine.LoadScript(script.ToArray());
+
+            engine.Execute().Should().Be(VMState.HALT);
+            var result = engine.ResultStack.Pop();
+            result.Should().BeOfType(typeof(VM.Types.Boolean));
+            Assert.IsFalse((result as VM.Types.Boolean).ToBoolean());
+
+            // Set good
+            script = new ScriptBuilder();
+            script.EmitAppCall(NativeContract.Oracle.Hash, "setConfig", key, data);
+            engine = new ApplicationEngine(TriggerType.Application, new ManualWitness(from), snapshot, 0, true);
+            engine.LoadScript(script.ToArray());
+
+            engine.Execute().Should().Be(VMState.HALT);
+            result = engine.ResultStack.Pop();
+            result.Should().BeOfType(typeof(VM.Types.Boolean));
+            Assert.IsTrue((result as VM.Types.Boolean).ToBoolean());
+
+            // Get
+            script = new ScriptBuilder();
+            script.EmitAppCall(NativeContract.Oracle.Hash, "getConfig", key);
+            engine = new ApplicationEngine(TriggerType.Application, null, snapshot, 0, true);
+            engine.LoadScript(script.ToArray());
+
+            engine.Execute().Should().Be(VMState.HALT);
+            result = engine.ResultStack.Pop();
+            result.Should().BeOfType(typeof(VM.Types.Array));
+            var array = (VM.Types.Array)result;
+            Assert.AreEqual(array[0].GetBigInteger(), new BigInteger(value.TimeOut));
+        }
+
+        [TestMethod]
+        public void Test_GetOracleValidatorsCount()
+        {
+            var snapshot = Blockchain.Singleton.GetSnapshot();
+            var script = new ScriptBuilder();
+            script.EmitAppCall(NativeContract.Oracle.Hash, "getOracleValidatorsCount");
+            var engine = new ApplicationEngine(TriggerType.Application, null, snapshot, 0, true);
+            engine.LoadScript(script.ToArray());
+
+            engine.Execute().Should().Be(VMState.HALT);
+            var result = engine.ResultStack.Pop();
+            result.Should().BeOfType(typeof(VM.Types.Integer));
+            Assert.AreEqual(result, 7);
+        }
+
+        [TestMethod]
+        public void Test_GetOracleValidators()
+        {
+            var snapshot = Blockchain.Singleton.GetSnapshot();
+
+            // Fake a oracle validator has cosignee.
+            ECPoint[] oraclePubKeys = NativeContract.Oracle.GetOracleValidators(snapshot);
+
+            ECPoint pubkey0 = oraclePubKeys[0]; // Validator0 is the cosignor
+            ECPoint cosignorPubKey = oraclePubKeys[1]; // Validator1 is the cosignee
+            var validator0Key = NativeContract.Oracle.CreateStorageKey(24, pubkey0); // 24 = Prefix_Validator
+            var validator0Value = new StorageItem()
+            {
+                Value = cosignorPubKey.ToArray()
+            };
+            snapshot.Storages.Add(validator0Key, validator0Value);
+
+            var script = new ScriptBuilder();
+            script.EmitAppCall(NativeContract.Oracle.Hash, "getOracleValidators");
+            var engine = new ApplicationEngine(TriggerType.Application, null, snapshot, 0, true);
+            engine.LoadScript(script.ToArray());
+
+            engine.Execute().Should().Be(VMState.HALT);
+            var result = engine.ResultStack.Pop();
+            result.Should().BeOfType(typeof(VM.Types.Array));
+            Assert.AreEqual(6, ((VM.Types.Array)result).Count);
+
+            // The validator0's cosignee should be the validator1
+            var validators = (VM.Types.Array)result;
+            var cosignee0Bytes = ((VM.Types.ByteString)validators[0]).GetSpan().ToHexString();
+            var cosignee1Bytes = ((VM.Types.ByteString)validators[1]).GetSpan().ToHexString();
+            Assert.AreNotEqual(cosignee0Bytes, cosignee1Bytes);
+            var validator1Bytes = cosignorPubKey.ToArray().ToHexString();
+            Assert.AreNotEqual(cosignee1Bytes, validator1Bytes);
+
+            // clear data
+            snapshot.Storages.Delete(validator0Key);
         }
 
         [TestMethod]

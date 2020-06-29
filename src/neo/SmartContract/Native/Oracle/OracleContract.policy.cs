@@ -3,8 +3,7 @@ using Neo.IO;
 using Neo.Ledger;
 using Neo.Persistence;
 using Neo.SmartContract.Native.Oracle;
-using Neo.VM;
-using Neo.VM.Types;
+using Newtonsoft.Json;
 using System;
 using System.Linq;
 using System.Text;
@@ -52,20 +51,18 @@ namespace Neo.SmartContract.Native
         }
 
         [ContractMethod(0_03000000, CallFlags.AllowModifyStates)]
-        private bool SetConfig(ApplicationEngine engine, VM.Types.Array args)
+        private bool SetConfig(ApplicationEngine engine, string protocolType, string data)
         {
             StoreView snapshot = engine.Snapshot;
             UInt160 account = GetOracleMultiSigAddress(snapshot);
             if (!engine.CheckWitnessInternal(account)) return false;
 
-            switch (args[0].GetString())
+            switch (protocolType)
             {
                 case HttpConfig.Key:
                     {
-                        var newCfg = new HttpConfig();
-                        newCfg.FromStackItem(args[1]);
-
-                        StorageItem storage = snapshot.Storages.GetAndChange(CreateStorageKey(Prefix_Config, Encoding.UTF8.GetBytes(HttpConfig.Key)));
+                        HttpConfig newCfg = (HttpConfig)JsonConvert.DeserializeObject(data,typeof(HttpConfig));
+                        StorageItem storage = snapshot.Storages.GetAndChange(CreateStorageKey(Prefix_Config, Encoding.UTF8.GetBytes(HttpConfig.Key)),()=>new StorageItem(newCfg));
                         var config = storage.GetInteroperable<HttpConfig>();
                         config.TimeOut = newCfg.TimeOut;
                         return true;
@@ -75,30 +72,27 @@ namespace Neo.SmartContract.Native
         }
 
         [ContractMethod(0_01000000, CallFlags.AllowStates)]
-        private StackItem GetConfig(ApplicationEngine engine, VM.Types.Array args)
-        {
-            return GetConfig(engine.Snapshot, args[0].GetString())?.ToStackItem(engine.ReferenceCounter);
-        }
-
         public IInteroperable GetConfig(StoreView snapshot, string protocolType)
         {
             switch (protocolType)
             {
                 case HttpConfig.Key:
-                    return snapshot.Storages.TryGet(CreateStorageKey(Prefix_Config, Encoding.UTF8.GetBytes(HttpConfig.Key)))?.GetInteroperable<HttpConfig>();
+                    var result= snapshot.Storages.TryGet(CreateStorageKey(Prefix_Config, Encoding.UTF8.GetBytes(HttpConfig.Key)))?.GetInteroperable<HttpConfig>();
+                    if (result is null) result= new HttpConfig();
+                    return result;
                 default:
                     return null;
             }
         }
 
         [ContractMethod(0_03000000, CallFlags.AllowModifyStates)]
-        public bool SetPerRequestFee(ApplicationEngine engine, int perRequestFee)
+        public bool SetPerRequestFee(ApplicationEngine engine, long perRequestFee)
         {
             StoreView snapshot = engine.Snapshot;
             UInt160 account = GetOracleMultiSigAddress(snapshot);
             if (!engine.CheckWitnessInternal(account)) return false;
             if (perRequestFee <= 0) return false;
-            StorageItem storage = snapshot.Storages.GetAndChange(CreateStorageKey(Prefix_PerRequestFee));
+            StorageItem storage = snapshot.Storages.GetAndChange(CreateStorageKey(Prefix_PerRequestFee), () => new StorageItem() { Value = BitConverter.GetBytes(perRequestFee) });
             storage.Value = BitConverter.GetBytes(perRequestFee);
             return true;
         }
@@ -117,7 +111,7 @@ namespace Neo.SmartContract.Native
             StoreView snapshot = engine.Snapshot;
             UInt160 account = GetOracleMultiSigAddress(snapshot);
             if (!engine.CheckWitnessInternal(account)) return false;
-            StorageItem storage = snapshot.Storages.GetAndChange(CreateStorageKey(Prefix_ValidHeight));
+            StorageItem storage = snapshot.Storages.GetAndChange(CreateStorageKey(Prefix_ValidHeight), () => new StorageItem() { Value = BitConverter.GetBytes(ValidHeight) });
             storage.Value = BitConverter.GetBytes(ValidHeight);
             return true;
         }
