@@ -14,54 +14,39 @@ namespace Neo.Network.P2P.Payloads
     {
         private const long MaxWitnessGas = 0_02000000;
 
-        private byte[] _data;
-        public byte[] Data
+        public ECPoint OraclePub;
+
+        public UInt256 TransactionRequestHash;
+
+        public UInt256 TransactionResponseHash;
+
+        private byte[] _signature;
+        public byte[] Signature
         {
-            get => _data;
-            set { _data = value; _hash = null; _size = 0; }
+            get => _signature;
+            set
+            {
+                if (value.Length != 64) throw new ArgumentException();
+                _signature = value;
+            }
         }
 
-        private ECPoint _oraclePub;
-        public ECPoint OraclePub
-        {
-            get => _oraclePub;
-            set { _oraclePub = value; _hash = null; _size = 0; }
-        }
+        public Witness Witness;
 
-        private Witness _witness;
-        public Witness Witness
-        {
-            get => _witness;
-            set { _witness = value; _hash = null; _size = 0; }
-        }
-
-        private int _size;
         public int Size
         {
             get
             {
-                if (_size == 0)
-                {
-                    _size = Data.GetVarSize() + // Data
-                        OraclePub.Size +        // Oracle Public key
-                        1 + Witness.Size;       // Witness
-                }
+                var _size = Signature.GetVarSize() + // Signature
+                        OraclePub.Size +             // Oracle Public key
+                        1 + Witness.Size +           // Witness
+                        UInt256.Length +             //RequestTx Hash
+                        UInt256.Length;             //ResponseTx Hash
                 return _size;
             }
         }
 
-        private UInt256 _hash = null;
-        public UInt256 Hash
-        {
-            get
-            {
-                if (_hash == null)
-                {
-                    _hash = new UInt256(Crypto.Hash256(this.GetHashData()));
-                }
-                return _hash;
-            }
-        }
+        public UInt256 Hash => new UInt256(Crypto.Hash256(this.GetHashData()));
 
         Witness[] IVerifiable.Witnesses
         {
@@ -73,31 +58,7 @@ namespace Neo.Network.P2P.Payloads
             }
         }
 
-        private OracleResponseSignature _deserializedOracleSignature = null;
-        public OracleResponseSignature OracleSignature
-        {
-            get
-            {
-                if (_deserializedOracleSignature is null)
-                    _deserializedOracleSignature = OracleResponseSignature.DeserializeFrom(Data);
-                return _deserializedOracleSignature;
-            }
-            set
-            {
-                if (!ReferenceEquals(_deserializedOracleSignature, value))
-                {
-                    _deserializedOracleSignature = value;
-                    Data = value?.ToArray();
-                }
-            }
-        }
-
         public InventoryType InventoryType => InventoryType.Oracle;
-
-        public OracleResponseSignature GetDeserializedOracleSignature()
-        {
-            return OracleSignature;
-        }
 
         void ISerializable.Deserialize(BinaryReader reader)
         {
@@ -109,8 +70,10 @@ namespace Neo.Network.P2P.Payloads
         }
         void IVerifiable.DeserializeUnsigned(BinaryReader reader)
         {
-            Data = reader.ReadVarBytes(Transaction.MaxTransactionSize);
             OraclePub = reader.ReadSerializable<ECPoint>();
+            TransactionRequestHash = reader.ReadSerializable<UInt256>();
+            TransactionResponseHash = reader.ReadSerializable<UInt256>();
+            Signature = reader.ReadBytes(64);
         }
 
         public virtual void Serialize(BinaryWriter writer)
@@ -121,8 +84,10 @@ namespace Neo.Network.P2P.Payloads
 
         void IVerifiable.SerializeUnsigned(BinaryWriter writer)
         {
-            writer.WriteVarBytes(Data);
             writer.Write(OraclePub);
+            writer.Write(TransactionRequestHash);
+            writer.Write(TransactionResponseHash);
+            writer.Write(Signature);
         }
 
         UInt160[] IVerifiable.GetScriptHashesForVerifying(StoreView snapshot)

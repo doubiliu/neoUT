@@ -17,7 +17,8 @@ namespace Neo.SmartContract.Native.Tokens
          + sizeof(long)
          + sizeof(long)
          + sizeof(long)
-         + URL.ToString().GetVarSize();
+         + URL.ToString().GetVarSize()
+         + sizeof(byte);
 
         public UInt256 RequestTxHash;
 
@@ -33,6 +34,8 @@ namespace Neo.SmartContract.Native.Tokens
 
         public Uri URL;
 
+        public RequestStatusType Status;
+
         public virtual void Serialize(BinaryWriter writer)
         {
             writer.Write(RequestTxHash);
@@ -42,6 +45,7 @@ namespace Neo.SmartContract.Native.Tokens
             writer.Write(ValidHeight);
             writer.Write(OracleFee);
             writer.WriteVarString(URL.ToString());
+            writer.Write((byte)Status);
         }
 
         public virtual void Deserialize(BinaryReader reader)
@@ -53,6 +57,7 @@ namespace Neo.SmartContract.Native.Tokens
             ValidHeight = reader.ReadUInt32();
             OracleFee = reader.ReadInt64();
             URL = new Uri(reader.ReadVarString());
+            Status = (RequestStatusType)reader.ReadByte();
         }
 
         public virtual void FromStackItem(StackItem stackItem)
@@ -62,9 +67,10 @@ namespace Neo.SmartContract.Native.Tokens
             FilterArgs = @struct[1].GetString();
             CallBackContractHash = @struct[2].GetSpan().AsSerializable<UInt160>();
             CallBackMethod = @struct[3].GetString();
-            ValidHeight = (uint)@struct[4].GetBigInteger();
-            OracleFee = (long)@struct[5].GetBigInteger();
+            ValidHeight = (uint)@struct[4].GetInteger();
+            OracleFee = (long)@struct[5].GetInteger();
             URL = new Uri(((Struct)stackItem)[6].GetString());
+            Status = (RequestStatusType)@struct[7].GetSpan().ToArray()[0];
         }
 
         public virtual StackItem ToStackItem(ReferenceCounter referenceCounter)
@@ -77,7 +83,8 @@ namespace Neo.SmartContract.Native.Tokens
               CallBackMethod,
               ValidHeight,
               OracleFee,
-              URL.ToString()
+              URL.ToString(),
+              new byte[]{ (byte)Status }
             };
             return @struct;
         }

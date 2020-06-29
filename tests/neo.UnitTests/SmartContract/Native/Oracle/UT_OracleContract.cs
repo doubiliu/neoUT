@@ -26,13 +26,10 @@ namespace Neo.UnitTests.SmartContract.Native
     [TestClass]
     public class UT_OracleContract
     {
-        private static OracleContract test;
-
         [TestInitialize]
         public void TestSetup()
         {
             TestBlockchain.InitializeMockNeoSystem();
-            test = NativeContract.Oracle;
         }
 
         internal static StorageKey CreateStorageKey(byte prefix, byte[] key = null)
@@ -81,7 +78,7 @@ namespace Neo.UnitTests.SmartContract.Native
             engine.Execute().Should().Be(VMState.HALT);
             var result = engine.ResultStack.Pop();
             result.Should().BeOfType(typeof(VM.Types.Boolean));
-            Assert.IsTrue((result as VM.Types.Boolean).ToBoolean());
+            Assert.IsTrue((result as VM.Types.Boolean).GetBoolean());
 
             // Set (wrong witness)
             script = new ScriptBuilder();
@@ -92,7 +89,7 @@ namespace Neo.UnitTests.SmartContract.Native
             engine.Execute().Should().Be(VMState.HALT);
             result = engine.ResultStack.Pop();
             result.Should().BeOfType(typeof(VM.Types.Boolean));
-            Assert.IsFalse((result as VM.Types.Boolean).ToBoolean());
+            Assert.IsFalse((result as VM.Types.Boolean).GetBoolean());
 
             // Set wrong (negative)
             script = new ScriptBuilder();
@@ -103,7 +100,7 @@ namespace Neo.UnitTests.SmartContract.Native
             engine.Execute().Should().Be(VMState.HALT);
             result = engine.ResultStack.Pop();
             result.Should().BeOfType(typeof(VM.Types.Boolean));
-            Assert.IsFalse((result as VM.Types.Boolean).ToBoolean());
+            Assert.IsFalse((result as VM.Types.Boolean).GetBoolean());
 
             // Get
             script = new ScriptBuilder();
@@ -151,7 +148,7 @@ namespace Neo.UnitTests.SmartContract.Native
             engine.Execute().Should().Be(VMState.HALT);
             var result = engine.ResultStack.Pop();
             result.Should().BeOfType(typeof(VM.Types.Boolean));
-            Assert.IsTrue((result as VM.Types.Boolean).ToBoolean());
+            Assert.IsTrue((result as VM.Types.Boolean).GetBoolean());
 
             // Set (wrong witness)
             script = new ScriptBuilder();
@@ -162,7 +159,7 @@ namespace Neo.UnitTests.SmartContract.Native
             engine.Execute().Should().Be(VMState.HALT);
             result = engine.ResultStack.Pop();
             result.Should().BeOfType(typeof(VM.Types.Boolean));
-            Assert.IsFalse((result as VM.Types.Boolean).ToBoolean());
+            Assert.IsFalse((result as VM.Types.Boolean).GetBoolean());
 
             // Get
             script = new ScriptBuilder();
@@ -216,7 +213,7 @@ namespace Neo.UnitTests.SmartContract.Native
             engine.Execute().Should().Be(VMState.HALT);
             var result = engine.ResultStack.Pop();
             result.Should().BeOfType(typeof(VM.Types.Boolean));
-            Assert.IsFalse((result as VM.Types.Boolean).ToBoolean());
+            Assert.IsFalse((result as VM.Types.Boolean).GetBoolean());
 
             // Set good
             script = new ScriptBuilder();
@@ -227,7 +224,7 @@ namespace Neo.UnitTests.SmartContract.Native
             engine.Execute().Should().Be(VMState.HALT);
             result = engine.ResultStack.Pop();
             result.Should().BeOfType(typeof(VM.Types.Boolean));
-            Assert.IsTrue((result as VM.Types.Boolean).ToBoolean());
+            Assert.IsTrue((result as VM.Types.Boolean).GetBoolean());
 
             // Get
             script = new ScriptBuilder();
@@ -239,7 +236,7 @@ namespace Neo.UnitTests.SmartContract.Native
             result = engine.ResultStack.Pop();
             result.Should().BeOfType(typeof(VM.Types.Array));
             var array = (VM.Types.Array)result;
-            Assert.AreEqual(array[0].GetBigInteger(), new BigInteger(value.TimeOut));
+            Assert.AreEqual(array[0].GetInteger(), new BigInteger(value.TimeOut));
         }
 
         [TestMethod]
