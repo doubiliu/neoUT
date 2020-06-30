@@ -119,7 +119,7 @@ namespace Neo.UnitTests.SmartContract.Native
         {
             var snapshot = Blockchain.Singleton.GetSnapshot();
             var script = new ScriptBuilder();
-            script.EmitAppCall(NativeContract.Oracle.Hash, "getValidHeight");
+            script.EmitAppCall(NativeContract.Oracle.Hash, "getRequestMaxValidHeight");
             var engine = new ApplicationEngine(TriggerType.Application, null, snapshot, 0, true);
             engine.LoadScript(script.ToArray());
 
@@ -141,7 +141,7 @@ namespace Neo.UnitTests.SmartContract.Native
 
             // Set 
             var script = new ScriptBuilder();
-            script.EmitAppCall(NativeContract.Oracle.Hash, "setValidHeight", value);
+            script.EmitAppCall(NativeContract.Oracle.Hash, "setRequestMaxValidHeight", value);
             engine = new ApplicationEngine(TriggerType.Application, new ManualWitness(from), snapshot, 0, true);
             engine.LoadScript(script.ToArray());
 
@@ -152,7 +152,7 @@ namespace Neo.UnitTests.SmartContract.Native
 
             // Set (wrong witness)
             script = new ScriptBuilder();
-            script.EmitAppCall(NativeContract.Oracle.Hash, "setValidHeight", value);
+            script.EmitAppCall(NativeContract.Oracle.Hash, "setRequestMaxValidHeight", value);
             engine = new ApplicationEngine(TriggerType.Application, new ManualWitness(null), snapshot, 0, true);
             engine.LoadScript(script.ToArray());
 
@@ -163,7 +163,7 @@ namespace Neo.UnitTests.SmartContract.Native
 
             // Get
             script = new ScriptBuilder();
-            script.EmitAppCall(NativeContract.Oracle.Hash, "getValidHeight");
+            script.EmitAppCall(NativeContract.Oracle.Hash, "getRequestMaxValidHeight");
             engine = new ApplicationEngine(TriggerType.Application, null, snapshot, 0, true);
             engine.LoadScript(script.ToArray());
 
