@@ -3,23 +3,18 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Neo.IO;
 using Neo.Ledger;
 using Neo.Network.P2P.Payloads;
-using Neo.Cryptography.ECC;
 using Neo.Persistence;
 using Neo.SmartContract;
 using Neo.SmartContract.Manifest;
 using Neo.SmartContract.Native;
-using Neo.SmartContract.Native.Oracle;
 using Neo.SmartContract.Native.Tokens;
 using Neo.VM;
 using Neo.VM.Types;
 using Neo.Wallets;
-using Newtonsoft.Json;
 using System;
 using System.IO;
-using System.Numerics;
 using System.Security.Cryptography;
 using static Neo.UnitTests.Extensions.Nep5NativeContractExtensions;
-using ECPoint = Neo.Cryptography.ECC.ECPoint;
 
 namespace Neo.UnitTests.SmartContract.Native
 {
@@ -49,7 +44,7 @@ namespace Neo.UnitTests.SmartContract.Native
         {
             var snapshot = Blockchain.Singleton.GetSnapshot();
             var script = new ScriptBuilder();
-            script.EmitAppCall(NativeContract.Oracle.Hash, "getPerRequestFee");
+            script.EmitAppCall(NativeContract.Oracle.Hash, "getRequestBaseFee");
             var engine = new ApplicationEngine(TriggerType.Application, null, snapshot, 0, true);
             engine.LoadScript(script.ToArray());
 
@@ -71,7 +66,7 @@ namespace Neo.UnitTests.SmartContract.Native
 
             // Set 
             var script = new ScriptBuilder();
-            script.EmitAppCall(NativeContract.Oracle.Hash, "setPerRequestFee", value);
+            script.EmitAppCall(NativeContract.Oracle.Hash, "setRequestBaseFee", value);
             engine = new ApplicationEngine(TriggerType.Application, new ManualWitness(from), snapshot, 0, true);
             engine.LoadScript(script.ToArray());
 
@@ -82,7 +77,7 @@ namespace Neo.UnitTests.SmartContract.Native
 
             // Set (wrong witness)
             script = new ScriptBuilder();
-            script.EmitAppCall(NativeContract.Oracle.Hash, "setPerRequestFee", value);
+            script.EmitAppCall(NativeContract.Oracle.Hash, "setRequestBaseFee", value);
             engine = new ApplicationEngine(TriggerType.Application, new ManualWitness(null), snapshot, 0, true);
             engine.LoadScript(script.ToArray());
 
@@ -93,7 +88,7 @@ namespace Neo.UnitTests.SmartContract.Native
 
             // Set wrong (negative)
             script = new ScriptBuilder();
-            script.EmitAppCall(NativeContract.Oracle.Hash, "setPerRequestFee", -1);
+            script.EmitAppCall(NativeContract.Oracle.Hash, "setRequestBaseFee", -1);
             engine = new ApplicationEngine(TriggerType.Application, new ManualWitness(from), snapshot, 0, true);
             engine.LoadScript(script.ToArray());
 
@@ -104,7 +99,7 @@ namespace Neo.UnitTests.SmartContract.Native
 
             // Get
             script = new ScriptBuilder();
-            script.EmitAppCall(NativeContract.Oracle.Hash, "getPerRequestFee");
+            script.EmitAppCall(NativeContract.Oracle.Hash, "getRequestBaseFee");
             engine = new ApplicationEngine(TriggerType.Application, null, snapshot, 0, true);
             engine.LoadScript(script.ToArray());
 
@@ -171,87 +166,6 @@ namespace Neo.UnitTests.SmartContract.Native
             result = engine.ResultStack.Pop();
             result.Should().BeOfType(typeof(VM.Types.Integer));
             Assert.AreEqual(result, value);
-        }
-
-        [TestMethod]
-        public void Test_GetHttpConfig()
-        {
-            var snapshot = Blockchain.Singleton.GetSnapshot();
-            var script = new ScriptBuilder();
-            script.EmitAppCall(NativeContract.Oracle.Hash, "getConfig", HttpConfig.Key);
-            var engine = new ApplicationEngine(TriggerType.Application, null, snapshot, 0, true);
-            engine.LoadScript(script.ToArray());
-
-            engine.Execute().Should().Be(VMState.HALT);
-            var result = engine.ResultStack.Pop();
-            result.Should().BeOfType(typeof(VM.Types.Array));
-
-            var cfg = new HttpConfig();
-            cfg.FromStackItem(result);
-
-            Assert.AreEqual(cfg.Timeout, 5000);
-        }
-
-        [TestMethod]
-        public void Test_SetConfig()
-        {
-            var snapshot = Blockchain.Singleton.GetSnapshot().Clone();
-
-            // Init
-            var engine = new ApplicationEngine(TriggerType.Application, null, snapshot, 0, true);
-            var from = NativeContract.Oracle.GetOracleMultiSigAddress(snapshot);
-            var key = HttpConfig.Key;
-            var value = new HttpConfig() { Timeout = 12345 };
-            var data = JsonConvert.SerializeObject(value);
-
-            // Set (wrong witness)
-            var script = new ScriptBuilder();
-            script.EmitAppCall(NativeContract.Oracle.Hash, "setConfig", key, data);
-            engine = new ApplicationEngine(TriggerType.Application, new ManualWitness(null), snapshot, 0, true);
-            engine.LoadScript(script.ToArray());
-
-            engine.Execute().Should().Be(VMState.HALT);
-            var result = engine.ResultStack.Pop();
-            result.Should().BeOfType(typeof(VM.Types.Boolean));
-            Assert.IsFalse((result as VM.Types.Boolean).GetBoolean());
-
-            // Set good
-            script = new ScriptBuilder();
-            script.EmitAppCall(NativeContract.Oracle.Hash, "setConfig", key, data);
-            engine = new ApplicationEngine(TriggerType.Application, new ManualWitness(from), snapshot, 0, true);
-            engine.LoadScript(script.ToArray());
-
-            engine.Execute().Should().Be(VMState.HALT);
-            result = engine.ResultStack.Pop();
-            result.Should().BeOfType(typeof(VM.Types.Boolean));
-            Assert.IsTrue((result as VM.Types.Boolean).GetBoolean());
-
-            // Get
-            script = new ScriptBuilder();
-            script.EmitAppCall(NativeContract.Oracle.Hash, "getConfig", key);
-            engine = new ApplicationEngine(TriggerType.Application, null, snapshot, 0, true);
-            engine.LoadScript(script.ToArray());
-
-            engine.Execute().Should().Be(VMState.HALT);
-            result = engine.ResultStack.Pop();
-            result.Should().BeOfType(typeof(VM.Types.Array));
-            var array = (VM.Types.Array)result;
-            Assert.AreEqual(array[0].GetInteger(), new BigInteger(value.Timeout));
-        }
-
-        [TestMethod]
-        public void Test_GetOracleValidatorsCount()
-        {
-            var snapshot = Blockchain.Singleton.GetSnapshot();
-            var script = new ScriptBuilder();
-            script.EmitAppCall(NativeContract.Oracle.Hash, "getOracleValidatorsCount");
-            var engine = new ApplicationEngine(TriggerType.Application, null, snapshot, 0, true);
-            engine.LoadScript(script.ToArray());
-
-            engine.Execute().Should().Be(VMState.HALT);
-            var result = engine.ResultStack.Pop();
-            result.Should().BeOfType(typeof(VM.Types.Integer));
-            Assert.AreEqual(result, 21);
         }
 
         [TestMethod]

@@ -2,28 +2,23 @@ using Neo.Cryptography.ECC;
 using Neo.IO;
 using Neo.Ledger;
 using Neo.Persistence;
-using Neo.SmartContract.Native.Oracle;
-using Newtonsoft.Json;
 using System;
-using System.Text;
 
 namespace Neo.SmartContract.Native
 {
     public partial class OracleContract : NativeContract
     {
-        internal const byte Prefix_Validator = 24;
-        internal const byte Prefix_Config = 17;
-        internal const byte Prefix_PerRequestFee = 21;
-        internal const byte Prefix_RequestMaxValidHeight = 19;
+        internal const byte Prefix_Validator = 37;
+        internal const byte Prefix_RequestBaseFee = 13;
+        internal const byte Prefix_RequestMaxValidHeight = 33;
 
         [ContractMethod(0_01000000, CallFlags.AllowStates)]
         public bool SetOracleValidators(ApplicationEngine engine, ECPoint[] validators)
         {
-            StoreView snapshot = engine.Snapshot;
-            UInt160 committeeAddress = NativeContract.NEO.GetCommitteeAddress(snapshot);
+            UInt160 committeeAddress = NativeContract.NEO.GetCommitteeAddress(engine.Snapshot);
             if (!engine.CheckWitnessInternal(committeeAddress)) return false;
             StorageKey key = CreateStorageKey(Prefix_Validator);
-            snapshot.Storages.GetAndChange(key, () => new StorageItem() { Value = validators.ToByteArray() });
+            engine.Snapshot.Storages.GetAndChange(key, () => new StorageItem() { Value = validators.ToByteArray() });
             return true;
         }
 
@@ -36,12 +31,6 @@ namespace Neo.SmartContract.Native
             return item.Value.AsSerializableArray<ECPoint>();
         }
 
-        [ContractMethod(0_01000000, CallFlags.AllowStates)]
-        public int GetOracleValidatorsCount(StoreView snapshot)
-        {
-            return GetOracleValidators(snapshot).Length;
-        }
-
         public UInt160 GetOracleMultiSigAddress(StoreView snapshot)
         {
             ECPoint[] oracleValidators = GetOracleValidators(snapshot);
@@ -49,56 +38,20 @@ namespace Neo.SmartContract.Native
         }
 
         [ContractMethod(0_03000000, CallFlags.AllowModifyStates)]
-        private bool SetConfig(ApplicationEngine engine, string protocolType, string data)
+        public bool SetRequestBaseFee(ApplicationEngine engine, long requestBaseFee)
         {
-            StoreView snapshot = engine.Snapshot;
-            UInt160 account = GetOracleMultiSigAddress(snapshot);
+            UInt160 account = GetOracleMultiSigAddress(engine.Snapshot);
             if (!engine.CheckWitnessInternal(account)) return false;
-
-            switch (protocolType)
-            {
-                case HttpConfig.Key:
-                    {
-                        HttpConfig newCfg = (HttpConfig)JsonConvert.DeserializeObject(data, typeof(HttpConfig));
-                        StorageItem storage = snapshot.Storages.GetAndChange(CreateStorageKey(Prefix_Config, Encoding.UTF8.GetBytes(HttpConfig.Key)), () => new StorageItem(newCfg));
-                        var config = storage.GetInteroperable<HttpConfig>();
-                        config.Timeout = newCfg.Timeout;
-                        return true;
-                    }
-            }
-            return false;
-        }
-
-        [ContractMethod(0_01000000, CallFlags.AllowStates)]
-        public IInteroperable GetConfig(StoreView snapshot, string protocolType)
-        {
-            switch (protocolType)
-            {
-                case HttpConfig.Key:
-                    var result = snapshot.Storages.TryGet(CreateStorageKey(Prefix_Config, Encoding.UTF8.GetBytes(HttpConfig.Key)))?.GetInteroperable<HttpConfig>();
-                    if (result is null) result = new HttpConfig();
-                    return result;
-                default:
-                    return null;
-            }
-        }
-
-        [ContractMethod(0_03000000, CallFlags.AllowModifyStates)]
-        public bool SetPerRequestFee(ApplicationEngine engine, long perRequestFee)
-        {
-            StoreView snapshot = engine.Snapshot;
-            UInt160 account = GetOracleMultiSigAddress(snapshot);
-            if (!engine.CheckWitnessInternal(account)) return false;
-            if (perRequestFee <= 0) return false;
-            StorageItem storage = snapshot.Storages.GetAndChange(CreateStorageKey(Prefix_PerRequestFee), () => new StorageItem() { Value = BitConverter.GetBytes(perRequestFee) });
-            storage.Value = BitConverter.GetBytes(perRequestFee);
+            if (requestBaseFee <= 0) return false;
+            StorageItem storage = engine.Snapshot.Storages.GetAndChange(CreateStorageKey(Prefix_RequestBaseFee), () => new StorageItem());
+            storage.Value = BitConverter.GetBytes(requestBaseFee);
             return true;
         }
 
         [ContractMethod(0_01000000, CallFlags.AllowStates)]
-        public long GetPerRequestFee(StoreView snapshot)
+        public long GetRequestBaseFee(StoreView snapshot)
         {
-            StorageItem storage = snapshot.Storages.TryGet(CreateStorageKey(Prefix_PerRequestFee));
+            StorageItem storage = snapshot.Storages.TryGet(CreateStorageKey(Prefix_RequestBaseFee));
             if (storage is null) return 0;
             return BitConverter.ToInt64(storage.Value);
         }
@@ -106,10 +59,9 @@ namespace Neo.SmartContract.Native
         [ContractMethod(0_03000000, CallFlags.AllowModifyStates)]
         public bool SetRequestMaxValidHeight(ApplicationEngine engine, uint ValidHeight)
         {
-            StoreView snapshot = engine.Snapshot;
-            UInt160 account = GetOracleMultiSigAddress(snapshot);
+            UInt160 account = GetOracleMultiSigAddress(engine.Snapshot);
             if (!engine.CheckWitnessInternal(account)) return false;
-            StorageItem storage = snapshot.Storages.GetAndChange(CreateStorageKey(Prefix_RequestMaxValidHeight), () => new StorageItem() { Value = BitConverter.GetBytes(ValidHeight) });
+            StorageItem storage = engine.Snapshot.Storages.GetAndChange(CreateStorageKey(Prefix_RequestMaxValidHeight), () => new StorageItem());
             storage.Value = BitConverter.GetBytes(ValidHeight);
             return true;
         }
