@@ -117,7 +117,7 @@ namespace Neo.SmartContract.Native
         }
 
         [ContractMethod(0_01000000, CallFlags.AllowStates)]
-        public uint GetValidHeight(StoreView snapshot)
+        public uint GetRequestMaxValidHeight(StoreView snapshot)
         {
             StorageItem storage = snapshot.Storages.TryGet(CreateStorageKey(Prefix_RequestMaxValidHeight));
             if (storage is null) return 0;
