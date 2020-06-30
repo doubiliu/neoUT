@@ -40,20 +40,5 @@ namespace Neo.Network.P2P.Payloads
             }
             writer.Write(FilterCost);
         }
-
-        public static OracleResponseAttribute CreateError(UInt256 requestHash)
-        {
-            return CreateResult(requestHash, null, 0);
-        }
-
-        public static OracleResponseAttribute CreateResult(UInt256 requestTxHash, byte[] result, long filterCost)
-        {
-            return new OracleResponseAttribute()
-            {
-                RequestTxHash = requestTxHash,
-                Result = result,
-                FilterCost = filterCost
-            };
-        }
     }
 }
