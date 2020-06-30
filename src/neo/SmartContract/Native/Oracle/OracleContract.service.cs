@@ -92,7 +92,7 @@ namespace Neo.SmartContract.Native
             return snapshot.Storages.TryGet(CreateRequestKey(RequestTxHash))?.GetInteroperable<OracleRequest>();
         }
 
-        private bool Response(ApplicationEngine engine, OracleResponse response)
+        private bool Response(ApplicationEngine engine, OracleResponseAttribute response)
         {
             StoreView snapshot = engine.Snapshot;
             StorageKey key_request = CreateRequestKey(response.RequestTxHash);
@@ -114,7 +114,7 @@ namespace Neo.SmartContract.Native
             Transaction tx = (Transaction)engine.ScriptContainer;
             TransactionAttribute attribute = tx.Attributes.Where(p => p is OracleResponseAttribute).FirstOrDefault();
             if (attribute is null) throw new InvalidOperationException();
-            OracleResponse response = ((OracleResponseAttribute)attribute).Response;
+            OracleResponseAttribute response = (OracleResponseAttribute)attribute;
             UInt256 RequestTxHash = response.RequestTxHash;
             StorageKey key_request = CreateRequestKey(RequestTxHash);
             OracleRequest request = engine.Snapshot.Storages.GetAndChange(key_request)?.GetInteroperable<OracleRequest>();
@@ -143,7 +143,7 @@ namespace Neo.SmartContract.Native
                 TransactionAttribute attribute = tx.Attributes.Where(p => p is OracleResponseAttribute).FirstOrDefault();
                 if (attribute is null) continue;
                 if (tx.Sender != GetOracleMultiSigAddress(engine.Snapshot)) throw new InvalidOperationException();
-                OracleResponse response = ((OracleResponseAttribute)attribute).Response;
+                OracleResponseAttribute response = (OracleResponseAttribute)attribute;
                 if (Response(engine, response))
                 {
                     UInt160[] oracleNodes = GetOracleValidators(engine.Snapshot).Select(p => Contract.CreateSignatureContract(p).ScriptHash).ToArray();
@@ -156,6 +156,7 @@ namespace Neo.SmartContract.Native
                     long refundGas = request.OracleFee - (response.FilterCost + GetPerRequestFee(engine.Snapshot)) * oracleNodes.Length - tx.NetworkFee - tx.SystemFee;
                     Transaction requestTx = engine.Snapshot.Transactions.TryGet(request.RequestTxHash)?.Transaction;
                     NativeContract.GAS.Mint(engine, requestTx.Sender, refundGas);
+                    NativeContract.GAS.Burn(engine, tx.Sender, refundGas);
                 }
             }
         }

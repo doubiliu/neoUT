@@ -33,18 +33,12 @@ namespace Neo.Network.P2P.Payloads
 
         public Witness Witness;
 
-        public int Size
-        {
-            get
-            {
-                var _size = Signature.GetVarSize() + // Signature
-                        OraclePub.Size +             // Oracle Public key
-                        1 + Witness.Size +           // Witness
-                        UInt256.Length +             //RequestTx Hash
-                        UInt256.Length;             //ResponseTx Hash
-                return _size;
-            }
-        }
+        public int Size =>
+            Signature.GetVarSize() + // Signature
+            OraclePub.Size +         // Oracle Public key
+            1 + Witness.Size +       // Witness
+            UInt256.Length +         //RequestTx Hash
+            UInt256.Length;          //ResponseTx Hash
 
         public UInt256 Hash => new UInt256(Crypto.Hash256(this.GetHashData()));
 
@@ -68,6 +62,7 @@ namespace Neo.Network.P2P.Payloads
             if (witness.Length != 1) throw new FormatException();
             Witness = witness[0];
         }
+
         void IVerifiable.DeserializeUnsigned(BinaryReader reader)
         {
             OraclePub = reader.ReadSerializable<ECPoint>();

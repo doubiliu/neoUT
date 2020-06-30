@@ -396,7 +396,7 @@ namespace Neo.UnitTests.SmartContract.Native
             }
             KeyPair keyPair = new KeyPair(privateKey);
 
-            OracleResponse response = new OracleResponse();
+            OracleResponseAttribute response = new OracleResponseAttribute();
             response.RequestTxHash = requestTxHash;
             response.Result = keyPair.PublicKey.ToArray();
             response.FilterCost = 0;
@@ -404,7 +404,7 @@ namespace Neo.UnitTests.SmartContract.Native
             Console.WriteLine(responsetx.SystemFee);
         }
 
-        private static Transaction CreateResponseTransaction(StoreView initsnapshot, OracleResponse response)
+        private static Transaction CreateResponseTransaction(StoreView initsnapshot, OracleResponseAttribute response)
         {
             StoreView snapshot = initsnapshot.Clone();
             string manifestString = "7b2267726f757073223a5b5d2c226665617475726573223a7b2273746f72616765223a747275652c2270617961626c65223a747275657d2c22616269223a7b0a202020202268617368223a22307831303633323632353734653666636432333636653632633539666663616130383531623232343836222c0a20202020226d6574686f6473223a0a202020205b0a20202020202020207b0a202020202020202020202020226e616d65223a227465737431222c0a202020202020202020202020226f6666736574223a2230222c0a20202020202020202020202022706172616d6574657273223a0a2020202020202020202020205b0a202020202020202020202020202020207b0a2020202020202020202020202020202020202020226e616d65223a2264617461222c0a20202020202020202020202020202020202020202274797065223a22427974654172726179220a202020202020202020202020202020207d0a2020202020202020202020205d2c0a2020202020202020202020202272657475726e54797065223a22426f6f6c65616e220a20202020202020207d0a202020205d2c0a20202020226576656e7473223a0a202020205b0a202020205d0a7d2c227065726d697373696f6e73223a5b7b22636f6e7472616374223a222a222c226d6574686f6473223a222a227d5d2c22747275737473223a5b5d2c22736166654d6574686f6473223a5b5d2c226578747261223a6e756c6c7d";
@@ -436,10 +436,7 @@ namespace Neo.UnitTests.SmartContract.Native
                         AllowedContracts = new UInt160[]{ NativeContract.Oracle.Hash },
                         Scopes = WitnessScope.CustomContracts
                     },
-                    new OracleResponseAttribute()
-                    {
-                         Response = response,
-                    }
+                    response
                 },
                 Sender = oracleAddress.ScriptHash,
                 Witnesses = new Witness[0],
