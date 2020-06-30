@@ -16,42 +16,22 @@ namespace Neo.Network.P2P.Payloads
 
         public ECPoint OraclePub;
 
-        public UInt256 TransactionRequestHash;
+        public UInt256 RequestTxHash;
 
-        public UInt256 TransactionResponseHash;
+        public UInt256 ResponseTxHash;
 
-        private byte[] _signature;
-        public byte[] Signature
-        {
-            get => _signature;
-            set
-            {
-                if (value.Length != 64) throw new ArgumentException();
-                _signature = value;
-            }
-        }
+        public byte[] Signature;
 
-        public Witness Witness;
+        public Witness[] Witnesses { get; set; }
 
         public int Size =>
             Signature.GetVarSize() + // Signature
             OraclePub.Size +         // Oracle Public key
-            1 +                      // The length of witnesses, currently it fixed 1.
-            Witness.Size +           // Witness
+            Witnesses.GetVarSize() + // Witnesses
             UInt256.Length +         //RequestTx Hash
             UInt256.Length;          //ResponseTx Hash
 
         public UInt256 Hash => new UInt256(Crypto.Hash256(this.GetHashData()));
-
-        Witness[] IVerifiable.Witnesses
-        {
-            get => new[] { Witness };
-            set
-            {
-                if (value.Length != 1) throw new ArgumentException();
-                Witness = value[0];
-            }
-        }
 
         public InventoryType InventoryType => InventoryType.Oracle;
 
@@ -59,30 +39,29 @@ namespace Neo.Network.P2P.Payloads
         {
             ((IVerifiable)this).DeserializeUnsigned(reader);
 
-            var witness = reader.ReadSerializableArray<Witness>(1);
-            if (witness.Length != 1) throw new FormatException();
-            Witness = witness[0];
+            Witnesses = reader.ReadSerializableArray<Witness>(1);
+            if (Witnesses.Length != 1) throw new FormatException();
         }
 
         void IVerifiable.DeserializeUnsigned(BinaryReader reader)
         {
             OraclePub = reader.ReadSerializable<ECPoint>();
-            TransactionRequestHash = reader.ReadSerializable<UInt256>();
-            TransactionResponseHash = reader.ReadSerializable<UInt256>();
-            Signature = reader.ReadBytes(64);
+            RequestTxHash = reader.ReadSerializable<UInt256>();
+            ResponseTxHash = reader.ReadSerializable<UInt256>();
+            Signature = reader.ReadFixedBytes(64);
         }
 
         public virtual void Serialize(BinaryWriter writer)
         {
             ((IVerifiable)this).SerializeUnsigned(writer);
-            writer.Write(new Witness[] { Witness });
+            writer.Write(Witnesses);
         }
 
         void IVerifiable.SerializeUnsigned(BinaryWriter writer)
         {
             writer.Write(OraclePub);
-            writer.Write(TransactionRequestHash);
-            writer.Write(TransactionResponseHash);
+            writer.Write(RequestTxHash);
+            writer.Write(ResponseTxHash);
             writer.Write(Signature);
         }
 

@@ -276,7 +276,7 @@ namespace Neo.UnitTests.SmartContract.Native
             var snapshot = Blockchain.Singleton.GetSnapshot();
             var request = new OracleRequest()
             {
-                URL = new Uri("https://www.baidu.com/"),
+                Url = "https://www.baidu.com/",
                 FilterPath = "dotest",
                 CallBackContract = NativeContract.NEO.Hash,
                 CallBackMethod = "unregisterCandidate",
@@ -301,7 +301,7 @@ namespace Neo.UnitTests.SmartContract.Native
             var script = new ScriptBuilder();
             script.EmitAppCall(NativeContract.Oracle.Hash,
                 "request",
-                request.URL.ToString(),
+                request.Url,
                 request.FilterPath,
                 request.CallBackContract,
                 request.CallBackMethod,
@@ -354,7 +354,7 @@ namespace Neo.UnitTests.SmartContract.Native
 
             var request = new OracleRequest()
             {
-                URL = new Uri("https://www.baidu.com/"),
+                Url= "https://www.baidu.com/",
                 FilterPath = "dotest",
                 CallBackContract = contract.ScriptHash,
                 CallBackMethod = "test1",
@@ -397,7 +397,7 @@ namespace Neo.UnitTests.SmartContract.Native
             };
             snapshot.Contracts.Add(file.ScriptHash, contract);
 
-            var oracleAddress = NativeContract.Oracle.GetOracleMultiSigContract(snapshot);
+            var oracleAddress = NativeContract.Oracle.GetOracleMultiSigAddress(snapshot);
             ScriptBuilder sb = new ScriptBuilder();
             sb.EmitAppCall(NativeContract.Oracle.Hash, "onPersist");
 
@@ -408,13 +408,13 @@ namespace Neo.UnitTests.SmartContract.Native
                 Attributes = new TransactionAttribute[]{
                     new Cosigner()
                     {
-                        Account = oracleAddress.ScriptHash,
+                        Account = oracleAddress,
                         AllowedContracts = new UInt160[]{ NativeContract.Oracle.Hash },
                         Scopes = WitnessScope.CustomContracts
                     },
                     response
                 },
-                Sender = oracleAddress.ScriptHash,
+                Sender = oracleAddress,
                 Witnesses = new Witness[0],
                 Script = sb.ToArray(),
                 NetworkFee = 0,
@@ -443,7 +443,9 @@ namespace Neo.UnitTests.SmartContract.Native
             tx.SystemFee = engine2.GasConsumed;
             // Calculate network fee
             int size = tx.Size;
-            tx.NetworkFee += Wallet.CalculateNetworkFee(oracleAddress.Script, ref size);
+            var oracleValidators = NativeContract.Oracle.GetOracleValidators(snapshot);
+            var oracleMultiContract = Contract.CreateMultiSigContract(oracleValidators.Length - (oracleValidators.Length - 1) / 3, oracleValidators);
+            tx.NetworkFee += Wallet.CalculateNetworkFee(oracleMultiContract.Script, ref size);
             tx.NetworkFee += size * NativeContract.Policy.GetFeePerByte(snapshot);
             return tx;
         }

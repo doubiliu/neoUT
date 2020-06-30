@@ -5,7 +5,6 @@ using Neo.Persistence;
 using Neo.SmartContract.Native.Oracle;
 using Newtonsoft.Json;
 using System;
-using System.Linq;
 using System.Text;
 
 namespace Neo.SmartContract.Native
@@ -43,15 +42,10 @@ namespace Neo.SmartContract.Native
             return GetOracleValidators(snapshot).Length;
         }
 
-        public Contract GetOracleMultiSigContract(StoreView snapshot)
-        {
-            ECPoint[] oracleValidators = GetOracleValidators(snapshot);
-            return Contract.CreateMultiSigContract(oracleValidators.Length - (oracleValidators.Length - 1) / 3, oracleValidators);
-        }
-
         public UInt160 GetOracleMultiSigAddress(StoreView snapshot)
         {
-            return GetOracleMultiSigContract(snapshot).ScriptHash;
+            ECPoint[] oracleValidators = GetOracleValidators(snapshot);
+            return Contract.CreateMultiSigContract(oracleValidators.Length - (oracleValidators.Length - 1) / 3, oracleValidators).ScriptHash;
         }
 
         [ContractMethod(0_03000000, CallFlags.AllowModifyStates)]

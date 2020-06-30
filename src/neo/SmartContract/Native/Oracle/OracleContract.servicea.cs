@@ -17,7 +17,8 @@ namespace Neo.SmartContract.Native
         public override int Id => -5;
 
         private const byte Prefix_Request = 21;
-        private const long BaseFee = 1000;
+
+        private const long MinTxFee = 1000;
 
         public OracleContract()
         {
@@ -37,12 +38,11 @@ namespace Neo.SmartContract.Native
                     }
                 }
             };
-
             Manifest.Abi.Events = events.ToArray();
         }
 
         [ContractMethod(0_01000000, CallFlags.All)]
-        public bool Request(ApplicationEngine engine, string urlstring, string filterArgs, UInt160 callBackContractHash, string callBackMethod, long oracleFee)
+        public bool Request(ApplicationEngine engine, string urlstring, string filterPath, string callBackMethod, long oracleFee)
         {
             if (!Uri.TryCreate(urlstring, UriKind.Absolute, out var url)) throw new ArgumentException();
             // Create request
@@ -54,9 +54,9 @@ namespace Neo.SmartContract.Native
                     {
                         request = new OracleRequest()
                         {
-                            URL = url,
-                            FilterPath = filterArgs,
-                            CallBackContract = callBackContractHash,
+                            Url = urlstring,
+                            FilterPath = filterPath,
+                            CallBackContract = engine.CallingScriptHash,
                             CallBackMethod = callBackMethod,
                             OracleFee = oracleFee,
                             Status = RequestStatusType.Request
@@ -71,7 +71,7 @@ namespace Neo.SmartContract.Native
         private bool Request(ApplicationEngine engine, OracleRequest request)
         {
             UInt160[] oracleNodes = GetOracleValidators(engine.Snapshot).Select(p => Contract.CreateSignatureContract(p).ScriptHash).ToArray();
-            if (request.OracleFee < GetPerRequestFee(engine.Snapshot) * oracleNodes.Length + BaseFee) throw new InvalidOperationException("OracleFee is not enough");
+            if (request.OracleFee < GetPerRequestFee(engine.Snapshot) * oracleNodes.Length + MinTxFee) throw new InvalidOperationException("OracleFee is not enough");
             if (!(engine.GetScriptContainer() is Transaction)) return false;
             Transaction tx = (Transaction)engine.GetScriptContainer();
             request.RequestTxHash = tx.Hash;
@@ -83,7 +83,7 @@ namespace Neo.SmartContract.Native
             engine.AddGas(request.OracleFee);
             NativeContract.GAS.Mint(engine, oracleAddress, request.OracleFee);
             engine.Snapshot.Storages.Add(key, new StorageItem(request));
-            engine.SendNotification(Hash, "Request", new Array() { });
+            engine.SendNotification(Hash, "Request", new Array() { tx.Hash.ToArray() });
             return true;
         }
 

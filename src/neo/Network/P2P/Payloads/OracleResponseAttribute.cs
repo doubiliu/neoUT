@@ -1,5 +1,4 @@
 using Neo.IO;
-using Neo.SmartContract.Native.Tokens;
 using System.IO;
 
 namespace Neo.Network.P2P.Payloads

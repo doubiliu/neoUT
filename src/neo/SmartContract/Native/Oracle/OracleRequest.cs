@@ -1,7 +1,6 @@
 using Neo.IO;
 using Neo.VM;
 using Neo.VM.Types;
-using System;
 using System.IO;
 
 namespace Neo.SmartContract.Native.Tokens
@@ -15,7 +14,7 @@ namespace Neo.SmartContract.Native.Tokens
             CallBackMethod.GetVarSize() + // CallBackMethod
             sizeof(uint) +                // ValidHeight
             sizeof(long) +                // OracleFee
-            URL.ToString().GetVarSize() + // URL
+            Url.GetVarSize() +            // Url
             sizeof(byte);                 // Status
 
         public UInt256 RequestTxHash;
@@ -30,7 +29,7 @@ namespace Neo.SmartContract.Native.Tokens
 
         public long OracleFee;
 
-        public Uri URL;
+        public string Url;
 
         public RequestStatusType Status;
 
@@ -42,7 +41,7 @@ namespace Neo.SmartContract.Native.Tokens
             writer.WriteVarString(CallBackMethod);
             writer.Write(ValidHeight);
             writer.Write(OracleFee);
-            writer.WriteVarString(URL.ToString());
+            writer.WriteVarString(Url);
             writer.Write((byte)Status);
         }
 
@@ -54,7 +53,7 @@ namespace Neo.SmartContract.Native.Tokens
             CallBackMethod = reader.ReadVarString();
             ValidHeight = reader.ReadUInt32();
             OracleFee = reader.ReadInt64();
-            URL = new Uri(reader.ReadVarString());
+            Url = reader.ReadVarString();
             Status = (RequestStatusType)reader.ReadByte();
         }
 
@@ -67,7 +66,7 @@ namespace Neo.SmartContract.Native.Tokens
             CallBackMethod = @struct[3].GetString();
             ValidHeight = (uint)@struct[4].GetInteger();
             OracleFee = (long)@struct[5].GetInteger();
-            URL = new Uri(((Struct)stackItem)[6].GetString());
+            Url = ((Struct)stackItem)[6].GetString();
             Status = (RequestStatusType)@struct[7].GetSpan().ToArray()[0];
         }
 
@@ -81,7 +80,7 @@ namespace Neo.SmartContract.Native.Tokens
                 CallBackMethod,
                 ValidHeight,
                 OracleFee,
-                URL.ToString(),
+                Url,
                 new byte[]{ (byte)Status }
             };
             return @struct;
