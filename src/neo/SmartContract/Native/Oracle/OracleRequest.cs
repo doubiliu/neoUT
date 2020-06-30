@@ -10,7 +10,7 @@ namespace Neo.SmartContract.Native.Tokens
     {
         public virtual int Size =>
             UInt256.Length +
-            FilterPath.GetVarSize() +
+            FilterPath.GetVarSize() + // TODO add comments
             UInt160.Length +
             CallBackMethod.GetVarSize() +
             sizeof(uint) +
@@ -76,13 +76,13 @@ namespace Neo.SmartContract.Native.Tokens
             Struct @struct = new Struct(referenceCounter)
             {
                 RequestTxHash.ToArray(),
-              FilterPath,
-              CallBackContract.ToArray(),
-              CallBackMethod,
-              ValidHeight,
-              OracleFee,
-              URL.ToString(),
-              new byte[]{ (byte)Status }
+                FilterPath,
+                CallBackContract.ToArray(),
+                CallBackMethod,
+                ValidHeight,
+                OracleFee,
+                URL.ToString(),
+                new byte[]{ (byte)Status }
             };
             return @struct;
         }

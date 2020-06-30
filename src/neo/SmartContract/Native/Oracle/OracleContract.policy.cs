@@ -64,7 +64,7 @@ namespace Neo.SmartContract.Native
                         HttpConfig newCfg = (HttpConfig)JsonConvert.DeserializeObject(data, typeof(HttpConfig));
                         StorageItem storage = snapshot.Storages.GetAndChange(CreateStorageKey(Prefix_Config, Encoding.UTF8.GetBytes(HttpConfig.Key)), () => new StorageItem(newCfg));
                         var config = storage.GetInteroperable<HttpConfig>();
-                        config.TimeOut = newCfg.TimeOut;
+                        config.Timeout = newCfg.Timeout;
                         return true;
                     }
             }

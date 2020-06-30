@@ -15,6 +15,7 @@ namespace Neo.SmartContract.Native
     {
         public override string Name => "Oracle";
         public override int Id => -5;
+
         private const byte Prefix_Request = 21;
         private const long BaseFee = 1000;
 
@@ -23,7 +24,7 @@ namespace Neo.SmartContract.Native
             Manifest.Features = ContractFeatures.HasStorage;
             var events = new List<ContractEventDescriptor>(Manifest.Abi.Events)
             {
-                new ContractMethodDescriptor()
+                new ContractEventDescriptor()
                 {
                     Name = "Request",
                     Parameters = new ContractParameterDefinition[]
@@ -33,8 +34,7 @@ namespace Neo.SmartContract.Native
                             Name = "requestTxHash",
                             Type = ContractParameterType.Hash256
                         }
-                    },
-                    ReturnType = ContractParameterType.Boolean
+                    }
                 }
             };
 
@@ -59,7 +59,7 @@ namespace Neo.SmartContract.Native
                             CallBackContract = callBackContractHash,
                             CallBackMethod = callBackMethod,
                             OracleFee = oracleFee,
-                            Status = RequestStatusType.REQUEST
+                            Status = RequestStatusType.Request
                         };
                         break;
                     }
@@ -97,10 +97,8 @@ namespace Neo.SmartContract.Native
             StoreView snapshot = engine.Snapshot;
             StorageKey key_request = CreateRequestKey(response.RequestTxHash);
             OracleRequest request = snapshot.Storages.TryGet(key_request).GetInteroperable<OracleRequest>();
-            if (request is null) return false;
-            if (request.Status != RequestStatusType.REQUEST) return false;
-            if (request.ValidHeight < snapshot.Height) return false;
-            request.Status = RequestStatusType.READY;
+            if (request is null || request.Status != RequestStatusType.Request || request.ValidHeight < snapshot.Height) return false;
+            request.Status = RequestStatusType.Ready;
             return true;
         }
 
@@ -108,9 +106,7 @@ namespace Neo.SmartContract.Native
         public void CallBack(ApplicationEngine engine)
         {
             UInt160 oracleAddress = GetOracleMultiSigAddress(engine.Snapshot);
-            if (!engine.CheckWitnessInternal(oracleAddress)) throw new InvalidOperationException();
-
-            if (!(engine.ScriptContainer is Transaction)) throw new InvalidOperationException();
+            if (!engine.CheckWitnessInternal(oracleAddress) || !(engine.ScriptContainer is Transaction)) throw new InvalidOperationException();
             Transaction tx = (Transaction)engine.ScriptContainer;
             TransactionAttribute attribute = tx.Attributes.Where(p => p is OracleResponseAttribute).FirstOrDefault();
             if (attribute is null) throw new InvalidOperationException();
@@ -118,20 +114,19 @@ namespace Neo.SmartContract.Native
             UInt256 RequestTxHash = response.RequestTxHash;
             StorageKey key_request = CreateRequestKey(RequestTxHash);
             OracleRequest request = engine.Snapshot.Storages.GetAndChange(key_request)?.GetInteroperable<OracleRequest>();
-            if (request is null) throw new InvalidOperationException();
-            if (request.Status != RequestStatusType.READY) throw new InvalidOperationException();
+            if (request is null || request.Status != RequestStatusType.Ready) throw new InvalidOperationException();
 
             if (!response.Error)
             {
                 byte[] data = response.Result;
                 engine.CallFromNativeContract(() =>
                 {
-                    request.Status = RequestStatusType.SUCCESSED;
+                    request.Status = RequestStatusType.Successed;
                 }, request.CallBackContract, request.CallBackMethod, data);
             }
             else
             {
-                request.Status = RequestStatusType.FAILED;
+                request.Status = RequestStatusType.Failed;
             }
         }
 
@@ -142,7 +137,6 @@ namespace Neo.SmartContract.Native
             {
                 TransactionAttribute attribute = tx.Attributes.Where(p => p is OracleResponseAttribute).FirstOrDefault();
                 if (attribute is null) continue;
-                if (tx.Sender != GetOracleMultiSigAddress(engine.Snapshot)) throw new InvalidOperationException();
                 OracleResponseAttribute response = (OracleResponseAttribute)attribute;
                 if (Response(engine, response))
                 {

@@ -23,14 +23,7 @@ namespace Neo.Network.P2P.Payloads
         protected override void DeserializeWithoutType(BinaryReader reader)
         {
             RequestTxHash = new UInt256(reader.ReadBytes(UInt256.Length));
-            if (reader.ReadByte() == 0x01)
-            {
-                Result = reader.ReadVarBytes(ushort.MaxValue);
-            }
-            else
-            {
-                Result = null;
-            }
+            Result = reader.ReadByte() == 0x01 ? reader.ReadVarBytes(ushort.MaxValue) : null;
             FilterCost = reader.ReadInt64();
         }
 

@@ -14,23 +14,19 @@ namespace Neo.SmartContract.Native.Oracle
 
         #region Serializable properties
 
-        public int TimeOut { get; set; } = 5000;
+        public int Timeout { get; set; } = 5000;
 
         #endregion
 
         public void FromStackItem(StackItem stackItem)
         {
             var array = (VM.Types.Array)stackItem;
-
-            TimeOut = (int)array[0].GetInteger();
+            Timeout = (int)array[0].GetInteger();
         }
 
         public StackItem ToStackItem(ReferenceCounter referenceCounter)
         {
-            return new VM.Types.Array(referenceCounter)
-            {
-                TimeOut
-            };
+            return new VM.Types.Array(referenceCounter) { Timeout };
         }
     }
 }

@@ -36,7 +36,8 @@ namespace Neo.Network.P2P.Payloads
         public int Size =>
             Signature.GetVarSize() + // Signature
             OraclePub.Size +         // Oracle Public key
-            1 + Witness.Size +       // Witness
+            1 +                      // The length of witnesses, currently it fixed 1.
+            Witness.Size +           // Witness
             UInt256.Length +         //RequestTx Hash
             UInt256.Length;          //ResponseTx Hash
 

@@ -189,7 +189,7 @@ namespace Neo.UnitTests.SmartContract.Native
             var cfg = new HttpConfig();
             cfg.FromStackItem(result);
 
-            Assert.AreEqual(cfg.TimeOut, 5000);
+            Assert.AreEqual(cfg.Timeout, 5000);
         }
 
         [TestMethod]
@@ -201,7 +201,7 @@ namespace Neo.UnitTests.SmartContract.Native
             var engine = new ApplicationEngine(TriggerType.Application, null, snapshot, 0, true);
             var from = NativeContract.Oracle.GetOracleMultiSigAddress(snapshot);
             var key = HttpConfig.Key;
-            var value = new HttpConfig() { TimeOut = 12345 };
+            var value = new HttpConfig() { Timeout = 12345 };
             var data = JsonConvert.SerializeObject(value);
 
             // Set (wrong witness)
@@ -236,7 +236,7 @@ namespace Neo.UnitTests.SmartContract.Native
             result = engine.ResultStack.Pop();
             result.Should().BeOfType(typeof(VM.Types.Array));
             var array = (VM.Types.Array)result;
-            Assert.AreEqual(array[0].GetInteger(), new BigInteger(value.TimeOut));
+            Assert.AreEqual(array[0].GetInteger(), new BigInteger(value.Timeout));
         }
 
         [TestMethod]
@@ -387,7 +387,6 @@ namespace Neo.UnitTests.SmartContract.Native
             ret_Request.Result.Should().Be(new VM.Types.Boolean(true));
             ret_Request.State.Should().BeTrue();
             snapshot.Transactions.Add(tx.Hash, new TransactionState() { Transaction = tx, VMState = VMState.HALT, BlockIndex = snapshot.PersistingBlock.Index });
-
 
             byte[] privateKey = new byte[32];
             using (RandomNumberGenerator rng = RandomNumberGenerator.Create())

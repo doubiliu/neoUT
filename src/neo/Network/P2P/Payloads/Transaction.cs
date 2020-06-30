@@ -290,6 +290,10 @@ namespace Neo.Network.P2P.Payloads
             if (size > MaxTransactionSize) return VerifyResult.Invalid;
             long net_fee = NetworkFee - size * NativeContract.Policy.GetFeePerByte(snapshot);
             if (net_fee < 0) return VerifyResult.InsufficientFunds;
+            if (attributes.OfType<OracleResponseAttribute>().FirstOrDefault() != null)
+            {
+                if (sender != NativeContract.Oracle.GetOracleMultiSigAddress(snapshot)) return VerifyResult.Invalid;
+            }
             if (!this.VerifyWitnesses(snapshot, net_fee)) return VerifyResult.Invalid;
             return VerifyResult.Succeed;
         }
