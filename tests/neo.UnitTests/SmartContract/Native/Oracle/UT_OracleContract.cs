@@ -370,9 +370,9 @@ namespace Neo.UnitTests.SmartContract.Native
             file.Deserialize(new BinaryReader(new MemoryStream(nefFileString.HexToBytes())));
             ContractState contract = new ContractState
             {
-               Id = snapshot.ContractId.GetAndChange().NextId++,
-               Script = file.Script,
-               Manifest = manifest
+                Id = snapshot.ContractId.GetAndChange().NextId++,
+                Script = file.Script,
+                Manifest = manifest
             };
 
             var request = new OracleRequest()
@@ -423,7 +423,7 @@ namespace Neo.UnitTests.SmartContract.Native
 
             var oracleAddress = NativeContract.Oracle.GetOracleMultiSigContract(snapshot);
             ScriptBuilder sb = new ScriptBuilder();
-            sb.EmitAppCall(NativeContract.Oracle.Hash,"onPersist");
+            sb.EmitAppCall(NativeContract.Oracle.Hash, "onPersist");
 
             var tx = new Transaction()
             {
@@ -456,7 +456,7 @@ namespace Neo.UnitTests.SmartContract.Native
             if (engine.Execute() != VMState.HALT) throw new InvalidOperationException();
 
             var sb2 = new ScriptBuilder();
-            sb2.EmitAppCall(NativeContract.Oracle.Hash,"callBack");
+            sb2.EmitAppCall(NativeContract.Oracle.Hash, "callBack");
 
             var state = new TransactionState
             {

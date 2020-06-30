@@ -61,8 +61,8 @@ namespace Neo.SmartContract.Native
             {
                 case HttpConfig.Key:
                     {
-                        HttpConfig newCfg = (HttpConfig)JsonConvert.DeserializeObject(data,typeof(HttpConfig));
-                        StorageItem storage = snapshot.Storages.GetAndChange(CreateStorageKey(Prefix_Config, Encoding.UTF8.GetBytes(HttpConfig.Key)),()=>new StorageItem(newCfg));
+                        HttpConfig newCfg = (HttpConfig)JsonConvert.DeserializeObject(data, typeof(HttpConfig));
+                        StorageItem storage = snapshot.Storages.GetAndChange(CreateStorageKey(Prefix_Config, Encoding.UTF8.GetBytes(HttpConfig.Key)), () => new StorageItem(newCfg));
                         var config = storage.GetInteroperable<HttpConfig>();
                         config.TimeOut = newCfg.TimeOut;
                         return true;
@@ -77,8 +77,8 @@ namespace Neo.SmartContract.Native
             switch (protocolType)
             {
                 case HttpConfig.Key:
-                    var result= snapshot.Storages.TryGet(CreateStorageKey(Prefix_Config, Encoding.UTF8.GetBytes(HttpConfig.Key)))?.GetInteroperable<HttpConfig>();
-                    if (result is null) result= new HttpConfig();
+                    var result = snapshot.Storages.TryGet(CreateStorageKey(Prefix_Config, Encoding.UTF8.GetBytes(HttpConfig.Key)))?.GetInteroperable<HttpConfig>();
+                    if (result is null) result = new HttpConfig();
                     return result;
                 default:
                     return null;
