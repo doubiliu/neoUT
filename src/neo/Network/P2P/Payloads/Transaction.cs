@@ -300,7 +300,7 @@ namespace Neo.Network.P2P.Payloads
                 var request = NativeContract.Oracle.GetRequest(snapshot, response.RequestTxHash);
                 if (request is null || request.Status != RequestStatusType.Request)
                     return VerifyResult.Invalid;
-                if(request.OracleFee < response.FilterCost + NativeContract.Oracle.GetRequestBaseFee(snapshot) + NetworkFee + SystemFee)
+                if (request.OracleFee < response.FilterCost + NativeContract.Oracle.GetRequestBaseFee(snapshot) + NetworkFee + SystemFee)
                     return VerifyResult.Invalid;
             }
 
