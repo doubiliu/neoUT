@@ -18,7 +18,7 @@ namespace Neo.SmartContract.Native
 
         private const byte Prefix_Request = 21;
 
-        private const long MinTxFee = 1000;
+        private const long ResponseTxMinFee = 1000;
 
         public OracleContract()
         {
@@ -71,7 +71,7 @@ namespace Neo.SmartContract.Native
         private bool Request(ApplicationEngine engine, OracleRequest request)
         {
             UInt160[] oracleNodes = GetOracleValidators(engine.Snapshot).Select(p => Contract.CreateSignatureContract(p).ScriptHash).ToArray();
-            if (request.OracleFee < GetPerRequestFee(engine.Snapshot) * oracleNodes.Length + MinTxFee) throw new InvalidOperationException("OracleFee is not enough");
+            if (request.OracleFee < GetPerRequestFee(engine.Snapshot) * oracleNodes.Length + ResponseTxMinFee) throw new InvalidOperationException("OracleFee is not enough");
             if (!(engine.GetScriptContainer() is Transaction)) return false;
             Transaction tx = (Transaction)engine.GetScriptContainer();
             request.RequestTxHash = tx.Hash;

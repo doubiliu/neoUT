@@ -354,7 +354,7 @@ namespace Neo.UnitTests.SmartContract.Native
 
             var request = new OracleRequest()
             {
-                Url= "https://www.baidu.com/",
+                Url = "https://www.baidu.com/",
                 FilterPath = "dotest",
                 CallBackContract = contract.ScriptHash,
                 CallBackMethod = "test1",
