@@ -75,7 +75,7 @@ namespace Neo.SmartContract.Native
             if (!(engine.GetScriptContainer() is Transaction)) return false;
             Transaction tx = (Transaction)engine.GetScriptContainer();
             request.RequestTxHash = tx.Hash;
-            request.ValidHeight = engine.GetBlockchainHeight() + GetValidHeight(engine.Snapshot);
+            request.ValidHeight = engine.GetBlockchainHeight() + GetRequestMaxValidHeight(engine.Snapshot);
             StorageKey key = CreateRequestKey(tx.Hash);
             OracleRequest init_request = engine.Snapshot.Storages.TryGet(key)?.GetInteroperable<OracleRequest>();
             if (init_request != null) return false;
