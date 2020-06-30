@@ -16,7 +16,7 @@ namespace Neo.SmartContract.Native
         public override string Name => "Oracle";
         public override int Id => -5;
         private const byte Prefix_Request = 21;
-        private const byte Prefix_Response = 17;
+        private const long BaseFee = 1000;
 
         public OracleContract()
         {
@@ -71,7 +71,7 @@ namespace Neo.SmartContract.Native
         private bool Request(ApplicationEngine engine, OracleRequest request)
         {
             UInt160[] oracleNodes = GetOracleValidators(engine.Snapshot).Select(p => Contract.CreateSignatureContract(p).ScriptHash).ToArray();
-            if (request.OracleFee < GetPerRequestFee(engine.Snapshot) * oracleNodes.Length) throw new InvalidOperationException("OracleFee is not enough");
+            if (request.OracleFee < GetPerRequestFee(engine.Snapshot) * oracleNodes.Length+BaseFee) throw new InvalidOperationException("OracleFee is not enough");
             if (!(engine.GetScriptContainer() is Transaction)) return false;
             Transaction tx = (Transaction)engine.GetScriptContainer();
             request.RequestTxHash = tx.Hash;
@@ -79,7 +79,9 @@ namespace Neo.SmartContract.Native
             StorageKey key = CreateRequestKey(tx.Hash);
             OracleRequest init_request = engine.Snapshot.Storages.TryGet(key)?.GetInteroperable<OracleRequest>();
             if (init_request != null) return false;
+            UInt160 oracleAddress = GetOracleMultiSigAddress(engine.Snapshot);
             engine.AddGas(request.OracleFee);
+            NativeContract.GAS.Mint(engine, oracleAddress, request.OracleFee);
             engine.Snapshot.Storages.Add(key, new StorageItem(request));
             engine.SendNotification(Hash, "Request", new Array() { });
             return true;
@@ -115,29 +117,21 @@ namespace Neo.SmartContract.Native
             OracleResponse response = ((OracleResponseAttribute)attribute).Response;
             UInt256 RequestTxHash = response.RequestTxHash;
             StorageKey key_request = CreateRequestKey(RequestTxHash);
-            OracleRequest request = engine.Snapshot.Storages.TryGet(key_request)?.GetInteroperable<OracleRequest>();
+            OracleRequest request = engine.Snapshot.Storages.GetAndChange(key_request)?.GetInteroperable<OracleRequest>();
             if (request is null) throw new InvalidOperationException();
             if (request.Status != RequestStatusType.READY) throw new InvalidOperationException();
 
-            byte[] data = response.Result;
-            long GasLeftBeforeCallBack = engine.GasLeft;
-            long FilterCost = response.FilterCost;
-
-            engine.CallFromNativeContract(() =>
+            if (!response.Error)
             {
-                long GasLeftAfterCallBack = engine.GasLeft;
-                long CallBackCost = GasLeftBeforeCallBack - GasLeftAfterCallBack;
-                StorageKey key_request = CreateRequestKey(RequestTxHash);
-                OracleRequest request = engine.Snapshot.Storages.TryGet(key_request)?.GetInteroperable<OracleRequest>();
-                UInt160[] oracleNodes = GetOracleValidators(engine.Snapshot).Select(p => Contract.CreateSignatureContract(p).ScriptHash).ToArray();
-                long refundGas = request.OracleFee - (FilterCost + GetPerRequestFee(engine.Snapshot)) * oracleNodes.Length - CallBackCost;
-
-                Transaction tx = engine.Snapshot.Transactions.TryGet(RequestTxHash)?.Transaction;
-                UInt160 account = tx.Sender;
-                request = engine.Snapshot.Storages.GetAndChange(key_request).GetInteroperable<OracleRequest>();
-                request.Status = RequestStatusType.SUCCESSED;
-                if (refundGas > 0) NativeContract.GAS.Mint(engine, account, refundGas);
-            }, request.CallBackContract, request.CallBackMethod, data);
+                byte[] data = response.Result;
+                engine.CallFromNativeContract(() =>
+                {
+                    request.Status = RequestStatusType.SUCCESSED;
+                }, request.CallBackContract, request.CallBackMethod, data);
+            }
+            else {
+                request.Status = RequestStatusType.FAILED;
+            }
         }
 
         protected override void OnPersist(ApplicationEngine engine)
@@ -158,8 +152,9 @@ namespace Neo.SmartContract.Native
                     }
                     StorageKey key_request = CreateRequestKey(response.RequestTxHash);
                     OracleRequest request = engine.Snapshot.Storages.TryGet(key_request)?.GetInteroperable<OracleRequest>();
-                    long CallBackFee = request.OracleFee - (response.FilterCost + GetPerRequestFee(engine.Snapshot)) * oracleNodes.Length;
-                    if (CallBackFee > 0) NativeContract.GAS.Mint(engine, tx.Sender, CallBackFee);
+                    long refundGas=request.OracleFee - (response.FilterCost + GetPerRequestFee(engine.Snapshot)) * oracleNodes.Length-tx.NetworkFee-tx.SystemFee;
+                    Transaction requestTx = engine.Snapshot.Transactions.TryGet(request.RequestTxHash)?.Transaction;
+                    NativeContract.GAS.Mint(engine, requestTx.Sender, refundGas);
                 }
             }
         }
