@@ -1,6 +1,7 @@
 using Neo.IO;
 using Neo.Ledger;
 using Neo.Network.P2P.Payloads;
+using Neo.Persistence;
 using Neo.SmartContract.Manifest;
 using Neo.SmartContract.Native.Tokens;
 using System;
@@ -78,9 +79,9 @@ namespace Neo.SmartContract.Native
         }
 
         [ContractMethod(0_01000000, CallFlags.AllowStates)]
-        public OracleRequest GetRequest(ApplicationEngine engine, UInt256 requestTxHash)
+        public OracleRequest GetRequest(StoreView snapshot, UInt256 requestTxHash)
         {
-            return engine.Snapshot.Storages.TryGet(CreateRequestKey(requestTxHash))?.GetInteroperable<OracleRequest>();
+            return snapshot.Storages.TryGet(CreateRequestKey(requestTxHash))?.GetInteroperable<OracleRequest>();
         }
 
         [ContractMethod(0_01000000, CallFlags.AllowStates)]
@@ -89,7 +90,7 @@ namespace Neo.SmartContract.Native
             var item = engine.Snapshot.Storages.TryGet(CreateStorageKey(Prefix_Response, requestTxHash));
             if (item is null || item.Value is null) throw new ArgumentException("Response dose not exist");
             var responseTxHash = new UInt256(item.Value);
-            return engine.Snapshot.Transactions.TryGet(responseTxHash).Transaction.Attributes.Where(p => p is OracleResponseAttribute).Select(p => p as OracleResponseAttribute).First();
+            return engine.Snapshot.Transactions.TryGet(responseTxHash).Transaction.Attributes.OfType<OracleResponseAttribute>().First();
         }
 
         private bool Response(ApplicationEngine engine, UInt256 responseTxHash, OracleResponseAttribute response)
@@ -109,7 +110,7 @@ namespace Neo.SmartContract.Native
             Transaction tx = (Transaction)engine.ScriptContainer;
             if (tx is null) throw new InvalidOperationException();
 
-            OracleResponseAttribute response = tx.Attributes.Where(p => p is OracleResponseAttribute response).Select(p => p as OracleResponseAttribute).First();
+            OracleResponseAttribute response = tx.Attributes.OfType<OracleResponseAttribute>().First();
             StorageKey requestKey = CreateRequestKey(response.RequestTxHash);
             OracleRequest request = engine.Snapshot.Storages.GetAndChange(requestKey)?.GetInteroperable<OracleRequest>();
             if (request is null || request.Status != RequestStatusType.Ready) throw new InvalidOperationException();
@@ -125,7 +126,7 @@ namespace Neo.SmartContract.Native
             base.OnPersist(engine);
             foreach (Transaction tx in engine.Snapshot.PersistingBlock.Transactions)
             {
-                OracleResponseAttribute response = tx.Attributes.Where(p => p is OracleResponseAttribute).Select(p => p as OracleResponseAttribute).FirstOrDefault();
+                OracleResponseAttribute response = tx.Attributes.OfType<OracleResponseAttribute>().FirstOrDefault();
                 if (response is null) continue;
                 if (Response(engine, tx.Hash, response))
                 {

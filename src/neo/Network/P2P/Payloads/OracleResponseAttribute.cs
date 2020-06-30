@@ -1,17 +1,18 @@
 using Neo.IO;
+using Neo.SmartContract;
+using Neo.VM;
+using Neo.VM.Types;
 using System.IO;
 
 namespace Neo.Network.P2P.Payloads
 {
-    public class OracleResponseAttribute : TransactionAttribute
+    public class OracleResponseAttribute : TransactionAttribute, IInteroperable
     {
         public UInt256 RequestTxHash { get; set; }
 
         public byte[] Result { get; set; }
 
         public long FilterCost { get; set; }
-
-        public bool Error => Result == null;
 
         public override int Size => base.Size + UInt256.Length + sizeof(long) + Result.GetVarSize();
 
@@ -39,6 +40,18 @@ namespace Neo.Network.P2P.Payloads
                 writer.Write((byte)0x00);
             }
             writer.Write(FilterCost);
+        }
+
+        public void FromStackItem(StackItem stackItem) => throw new System.NotImplementedException();
+
+        public StackItem ToStackItem(ReferenceCounter referenceCounter)
+        {
+            return new Struct(referenceCounter)
+            {
+                RequestTxHash.ToArray(),
+                Result,
+                FilterCost
+            };
         }
     }
 }

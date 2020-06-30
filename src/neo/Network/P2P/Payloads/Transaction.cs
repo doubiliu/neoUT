@@ -5,6 +5,7 @@ using Neo.Ledger;
 using Neo.Persistence;
 using Neo.SmartContract;
 using Neo.SmartContract.Native;
+using Neo.SmartContract.Native.Tokens;
 using Neo.VM;
 using Neo.VM.Types;
 using Neo.Wallets;
@@ -290,7 +291,19 @@ namespace Neo.Network.P2P.Payloads
             if (size > MaxTransactionSize) return VerifyResult.Invalid;
             long net_fee = NetworkFee - size * NativeContract.Policy.GetFeePerByte(snapshot);
             if (net_fee < 0) return VerifyResult.InsufficientFunds;
-            if (attributes.OfType<OracleResponseAttribute>().FirstOrDefault() != null && sender != NativeContract.Oracle.GetOracleMultiSigAddress(snapshot)) return VerifyResult.Invalid;
+
+            if (attributes.OfType<OracleResponseAttribute>().FirstOrDefault() != null)
+            {
+                if (Sender != NativeContract.Oracle.GetOracleMultiSigAddress(snapshot))
+                    return VerifyResult.Invalid;
+                var response = attributes.OfType<OracleResponseAttribute>().FirstOrDefault();
+                var request = NativeContract.Oracle.GetRequest(snapshot, response.RequestTxHash);
+                if (request is null || request.Status != RequestStatusType.Request)
+                    return VerifyResult.Invalid;
+                if(request.OracleFee < response.FilterCost + NativeContract.Oracle.GetRequestBaseFee(snapshot) + NetworkFee + SystemFee)
+                    return VerifyResult.Invalid;
+            }
+
             if (!this.VerifyWitnesses(snapshot, net_fee)) return VerifyResult.Invalid;
             return VerifyResult.Succeed;
         }

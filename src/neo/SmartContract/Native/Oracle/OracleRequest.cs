@@ -72,7 +72,7 @@ namespace Neo.SmartContract.Native.Tokens
 
         public virtual StackItem ToStackItem(ReferenceCounter referenceCounter)
         {
-            Struct @struct = new Struct(referenceCounter)
+            return new Struct(referenceCounter)
             {
                 RequestTxHash.ToArray(),
                 FilterPath,
@@ -83,7 +83,6 @@ namespace Neo.SmartContract.Native.Tokens
                 Url,
                 new byte[]{ (byte)Status }
             };
-            return @struct;
         }
     }
 }
