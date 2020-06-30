@@ -106,7 +106,7 @@ namespace Neo.SmartContract.Native
         }
 
         [ContractMethod(0_03000000, CallFlags.AllowModifyStates)]
-        public bool SetValidHeight(ApplicationEngine engine, uint ValidHeight)
+        public bool SetRequestMaxValidHeight(ApplicationEngine engine, uint ValidHeight)
         {
             StoreView snapshot = engine.Snapshot;
             UInt160 account = GetOracleMultiSigAddress(snapshot);
@@ -117,7 +117,7 @@ namespace Neo.SmartContract.Native
         }
 
         [ContractMethod(0_01000000, CallFlags.AllowStates)]
-        public uint GetValidHeight(StoreView snapshot)
+        public uint GetRequestMaxValidHeight(StoreView snapshot)
         {
             StorageItem storage = snapshot.Storages.TryGet(CreateStorageKey(Prefix_RequestMaxValidHeight));
             if (storage is null) return 0;
