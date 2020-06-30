@@ -251,25 +251,13 @@ namespace Neo.UnitTests.SmartContract.Native
             engine.Execute().Should().Be(VMState.HALT);
             var result = engine.ResultStack.Pop();
             result.Should().BeOfType(typeof(VM.Types.Integer));
-            Assert.AreEqual(result, 7);
+            Assert.AreEqual(result, 21);
         }
 
         [TestMethod]
         public void Test_GetOracleValidators()
         {
             var snapshot = Blockchain.Singleton.GetSnapshot();
-
-            // Fake a oracle validator has cosignee.
-            ECPoint[] oraclePubKeys = NativeContract.Oracle.GetOracleValidators(snapshot);
-
-            ECPoint pubkey0 = oraclePubKeys[0]; // Validator0 is the cosignor
-            ECPoint cosignorPubKey = oraclePubKeys[1]; // Validator1 is the cosignee
-            var validator0Key = NativeContract.Oracle.CreateStorageKey(24, pubkey0); // 24 = Prefix_Validator
-            var validator0Value = new StorageItem()
-            {
-                Value = cosignorPubKey.ToArray()
-            };
-            snapshot.Storages.Add(validator0Key, validator0Value);
 
             var script = new ScriptBuilder();
             script.EmitAppCall(NativeContract.Oracle.Hash, "getOracleValidators");
@@ -279,18 +267,7 @@ namespace Neo.UnitTests.SmartContract.Native
             engine.Execute().Should().Be(VMState.HALT);
             var result = engine.ResultStack.Pop();
             result.Should().BeOfType(typeof(VM.Types.Array));
-            Assert.AreEqual(6, ((VM.Types.Array)result).Count);
-
-            // The validator0's cosignee should be the validator1
-            var validators = (VM.Types.Array)result;
-            var cosignee0Bytes = ((VM.Types.ByteString)validators[0]).GetSpan().ToHexString();
-            var cosignee1Bytes = ((VM.Types.ByteString)validators[1]).GetSpan().ToHexString();
-            Assert.AreNotEqual(cosignee0Bytes, cosignee1Bytes);
-            var validator1Bytes = cosignorPubKey.ToArray().ToHexString();
-            Assert.AreNotEqual(cosignee1Bytes, validator1Bytes);
-
-            // clear data
-            snapshot.Storages.Delete(validator0Key);
+            Assert.AreEqual(21, ((VM.Types.Array)result).Count);
         }
 
         [TestMethod]

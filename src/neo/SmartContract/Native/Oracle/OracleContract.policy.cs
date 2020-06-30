@@ -18,19 +18,23 @@ namespace Neo.SmartContract.Native
         internal const byte Prefix_RequestMaxValidHeight = 19;
 
         [ContractMethod(0_01000000, CallFlags.AllowStates)]
+        public bool SetOracleValidators(ApplicationEngine engine, ECPoint[] validators)
+        {
+            StoreView snapshot = engine.Snapshot;
+            UInt160 committeeAddress = NativeContract.NEO.GetCommitteeAddress(snapshot);
+            if (!engine.CheckWitnessInternal(committeeAddress)) return false;
+            StorageKey key = CreateStorageKey(Prefix_Validator);
+            snapshot.Storages.GetAndChange(key, () => new StorageItem() { Value = validators.ToByteArray() });
+            return true;
+        }
+
+        [ContractMethod(0_01000000, CallFlags.AllowStates)]
         public ECPoint[] GetOracleValidators(StoreView snapshot)
         {
-            ECPoint[] cnPubKeys = NEO.GetValidators(snapshot);
-            ECPoint[] oraclePubKeys = new ECPoint[cnPubKeys.Length];
-            System.Array.Copy(cnPubKeys, oraclePubKeys, cnPubKeys.Length);
-            for (int index = 0; index < oraclePubKeys.Length; index++)
-            {
-                var oraclePubKey = oraclePubKeys[index];
-                StorageKey key = CreateStorageKey(Prefix_Validator, oraclePubKey);
-                ECPoint delegatePubKey = snapshot.Storages.TryGet(key)?.Value.AsSerializable<ECPoint>();
-                if (delegatePubKey != null) { oraclePubKeys[index] = delegatePubKey; }
-            }
-            return oraclePubKeys.Distinct().ToArray();
+            StorageKey key = CreateStorageKey(Prefix_Validator);
+            StorageItem item = snapshot.Storages.TryGet(key);
+            if (item is null) return NativeContract.NEO.GetCommittee(snapshot);
+            return item.Value.AsSerializableArray<ECPoint>();
         }
 
         [ContractMethod(0_01000000, CallFlags.AllowStates)]

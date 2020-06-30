@@ -9,14 +9,14 @@ namespace Neo.SmartContract.Native.Tokens
     public class OracleRequest : IInteroperable, ISerializable
     {
         public virtual int Size =>
-            UInt256.Length +
-            FilterPath.GetVarSize() + // TODO add comments
-            UInt160.Length +
-            CallBackMethod.GetVarSize() +
-            sizeof(uint) +
-            sizeof(long) +
-            URL.ToString().GetVarSize() +
-            sizeof(byte);
+            UInt256.Length +              // RequestTxHash
+            FilterPath.GetVarSize() +     // FilterPath
+            UInt160.Length +              // CallBackContract
+            CallBackMethod.GetVarSize() + // CallBackMethod
+            sizeof(uint) +                // ValidHeight
+            sizeof(long) +                // OracleFee
+            URL.ToString().GetVarSize() + // URL
+            sizeof(byte);                 // Status
 
         public UInt256 RequestTxHash;
 
