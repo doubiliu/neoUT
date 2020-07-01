@@ -5,6 +5,7 @@ using Neo.Network.P2P.Payloads;
 using Neo.Persistence;
 using Neo.SmartContract.Manifest;
 using Neo.SmartContract.Native.Tokens;
+using Neo.VM.Types;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -38,8 +39,8 @@ namespace Neo.SmartContract.Native
                     {
                         new ContractParameterDefinition()
                         {
-                            Name = "requestTxHash",
-                            Type = ContractParameterType.Hash256
+                            Name = "request",
+                            Type = ContractParameterType.InteropInterface
                         }
                     }
                 }
@@ -50,7 +51,7 @@ namespace Neo.SmartContract.Native
         [ContractMethod(0_01000000, CallFlags.AllowStates)]
         public bool SetOracleValidators(ApplicationEngine engine, ECPoint[] validators)
         {
-            UInt160 committeeAddress = NativeContract.NEO.GetCommitteeAddress(engine.Snapshot);
+            UInt160 committeeAddress = NEO.GetCommitteeAddress(engine.Snapshot);
             if (!engine.CheckWitnessInternal(committeeAddress)) return false;
             StorageKey key = CreateStorageKey(Prefix_Validator);
             engine.Snapshot.Storages.GetAndChange(key, () => new StorageItem() { Value = validators.ToByteArray() });
@@ -62,8 +63,7 @@ namespace Neo.SmartContract.Native
         {
             StorageKey key = CreateStorageKey(Prefix_Validator);
             StorageItem item = snapshot.Storages.TryGet(key);
-            if (item is null) return NativeContract.NEO.GetCommittee(snapshot);
-            return item.Value.AsSerializableArray<ECPoint>();
+            return item?.Value.AsSerializableArray<ECPoint>();
         }
 
         public UInt160 GetOracleMultiSigAddress(StoreView snapshot)
@@ -75,7 +75,7 @@ namespace Neo.SmartContract.Native
         [ContractMethod(0_03000000, CallFlags.AllowModifyStates)]
         public bool SetRequestBaseFee(ApplicationEngine engine, long requestBaseFee)
         {
-            UInt160 account = GetOracleMultiSigAddress(engine.Snapshot);
+            UInt160 account = NEO.GetCommitteeAddress(engine.Snapshot);
             if (!engine.CheckWitnessInternal(account)) return false;
             if (requestBaseFee <= 0) return false;
             StorageItem storage = engine.Snapshot.Storages.GetAndChange(CreateStorageKey(Prefix_RequestBaseFee), () => new StorageItem());
@@ -94,8 +94,8 @@ namespace Neo.SmartContract.Native
         [ContractMethod(0_03000000, CallFlags.AllowModifyStates)]
         public bool SetRequestMaxValidHeight(ApplicationEngine engine, uint ValidHeight)
         {
-            UInt160 account = GetOracleMultiSigAddress(engine.Snapshot);
-            if (!engine.CheckWitnessInternal(account)) return false;
+            UInt160 committeeAddress = NEO.GetCommitteeAddress(engine.Snapshot);
+            if (!engine.CheckWitnessInternal(committeeAddress)) return false;
             StorageItem storage = engine.Snapshot.Storages.GetAndChange(CreateStorageKey(Prefix_RequestMaxValidHeight), () => new StorageItem());
             storage.Value = BitConverter.GetBytes(ValidHeight);
             return true;
@@ -110,7 +110,7 @@ namespace Neo.SmartContract.Native
         }
 
         [ContractMethod(0_01000000, CallFlags.All)]
-        public bool Request(ApplicationEngine engine, string url, string filterPath, string callBackMethod, long oracleFee)
+        public bool Request(ApplicationEngine engine, string url, string filterPath, string callbackMethod, long oracleFee)
         {
             Transaction tx = (Transaction)engine.GetScriptContainer();
             var requestKey = CreateRequestKey(tx.Hash);
@@ -126,21 +126,21 @@ namespace Neo.SmartContract.Native
             engine.AddGas(oracleFee);
 
             UInt160 oracleAddress = GetOracleMultiSigAddress(engine.Snapshot);
-            NativeContract.GAS.Mint(engine, oracleAddress, oracleFee - GetRequestBaseFee(engine.Snapshot)); // pay response tx
+            GAS.Mint(engine, oracleAddress, oracleFee - GetRequestBaseFee(engine.Snapshot)); // pay response tx
 
-            engine.Snapshot.Storages.Add(requestKey, new StorageItem(new OracleRequest()
+            OracleRequest request = new OracleRequest()
             {
                 Url = url,
                 FilterPath = filterPath,
-                CallBackContract = engine.CallingScriptHash,
-                CallBackMethod = callBackMethod,
+                CallbackContract = engine.CallingScriptHash,
+                CallbackMethod = callbackMethod,
                 OracleFee = oracleFee,
                 RequestTxHash = tx.Hash,
                 ValidHeight = engine.GetBlockchainHeight() + GetRequestMaxValidHeight(engine.Snapshot),
                 Status = RequestStatusType.Request
-            }));
-
-            engine.SendNotification(Hash, "Request", new Array() { tx.Hash.ToArray() });
+            };
+            engine.Snapshot.Storages.Add(requestKey, new StorageItem(request));
+            engine.SendNotification(Hash, "Request", new Array() { StackItem.FromInterface(request) });
             return true;
         }
 
@@ -169,14 +169,14 @@ namespace Neo.SmartContract.Native
         }
 
         [ContractMethod(0_01000000, CallFlags.All)]
-        public void CallBack(ApplicationEngine engine)
+        public void Callback(ApplicationEngine engine)
         {
             UInt160 oracleAddress = GetOracleMultiSigAddress(engine.Snapshot);
             if (!engine.CheckWitnessInternal(oracleAddress)) throw new InvalidOperationException();
             Transaction tx = (Transaction)engine.ScriptContainer;
             if (tx is null) throw new InvalidOperationException();
-
-            OracleResponseAttribute response = tx.Attributes.OfType<OracleResponseAttribute>().First();
+            OracleResponseAttribute response = tx.Attributes.OfType<OracleResponseAttribute>().FirstOrDefault();
+            if (response is null) throw new InvalidOperationException();
             StorageKey requestKey = CreateRequestKey(response.RequestTxHash);
             OracleRequest request = engine.Snapshot.Storages.GetAndChange(requestKey)?.GetInteroperable<OracleRequest>();
             if (request is null || request.Status != RequestStatusType.Ready) throw new InvalidOperationException();
@@ -184,7 +184,7 @@ namespace Neo.SmartContract.Native
             engine.CallFromNativeContract(() =>
             {
                 request.Status = RequestStatusType.Successed;
-            }, request.CallBackContract, request.CallBackMethod, response.Result);
+            }, request.CallbackContract, request.CallbackMethod, response.Data);
         }
 
         protected override void OnPersist(ApplicationEngine engine)
@@ -197,14 +197,15 @@ namespace Neo.SmartContract.Native
                 if (Response(engine, tx.Hash, response))
                 {
                     UInt160[] oracleNodes = GetOracleValidators(engine.Snapshot).Select(p => Contract.CreateSignatureContract(p).ScriptHash).ToArray();
+                    long nodeReward = (response.FilterCost + GetRequestBaseFee(engine.Snapshot)) / oracleNodes.Length;
                     foreach (UInt160 account in oracleNodes)
-                        NativeContract.GAS.Mint(engine, account, (response.FilterCost + GetRequestBaseFee(engine.Snapshot)) / oracleNodes.Length);
+                        GAS.Mint(engine, account, nodeReward);
 
                     OracleRequest request = engine.Snapshot.Storages.TryGet(CreateRequestKey(response.RequestTxHash))?.GetInteroperable<OracleRequest>();
                     long refund = request.OracleFee - response.FilterCost - GetRequestBaseFee(engine.Snapshot) - tx.NetworkFee - tx.SystemFee;
                     Transaction requestTx = engine.Snapshot.Transactions.TryGet(request.RequestTxHash).Transaction;
-                    NativeContract.GAS.Mint(engine, requestTx.Sender, refund);
-                    NativeContract.GAS.Burn(engine, tx.Sender, refund + response.FilterCost);
+                    GAS.Mint(engine, requestTx.Sender, refund);
+                    GAS.Burn(engine, tx.Sender, refund + response.FilterCost);
                 }
             }
         }

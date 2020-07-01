@@ -292,15 +292,15 @@ namespace Neo.Network.P2P.Payloads
             long net_fee = NetworkFee - size * NativeContract.Policy.GetFeePerByte(snapshot);
             if (net_fee < 0) return VerifyResult.InsufficientFunds;
 
-            if (attributes.OfType<OracleResponseAttribute>().FirstOrDefault() != null)
+            var oracleResponse = attributes.OfType<OracleResponseAttribute>().FirstOrDefault();
+            if (oracleResponse != null)
             {
-                if (Sender != NativeContract.Oracle.GetOracleMultiSigAddress(snapshot))
+                if (Sender != NativeContract.Oracle.GetOracleMultiSigAddress(snapshot) || oracleResponse.FilterCost < 0)
                     return VerifyResult.Invalid;
-                var response = attributes.OfType<OracleResponseAttribute>().FirstOrDefault();
-                var request = NativeContract.Oracle.GetRequest(snapshot, response.RequestTxHash);
+                var request = NativeContract.Oracle.GetRequest(snapshot, oracleResponse.RequestTxHash);
                 if (request is null || request.Status != RequestStatusType.Request)
                     return VerifyResult.Invalid;
-                if (request.OracleFee < response.FilterCost + NativeContract.Oracle.GetRequestBaseFee(snapshot) + NetworkFee + SystemFee)
+                if (request.OracleFee < oracleResponse.FilterCost + NativeContract.Oracle.GetRequestBaseFee(snapshot) + NetworkFee + SystemFee)
                     return VerifyResult.Invalid;
             }
 

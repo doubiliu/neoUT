@@ -15,18 +15,16 @@ namespace Neo.Network.P2P.Payloads
         private const long MaxWitnessGas = 0_02000000;
 
         public ECPoint OraclePub;
-
         public UInt256 RequestTxHash;
-
-        public byte[] Signature;
+        public byte[] ResponseTxSignature;
 
         public Witness[] Witnesses { get; set; }
 
         public int Size =>
-            Signature.GetVarSize() + // Signature
-            OraclePub.Size +         // Oracle Public key
-            Witnesses.GetVarSize() + // Witnesses
-            UInt256.Length;          //RequestTx Hash
+            ResponseTxSignature.GetVarSize() +  // Oracle Response Transaction Signature
+            OraclePub.Size +                    // Oracle Node Public key
+            Witnesses.GetVarSize() +            // Witnesses
+            UInt256.Length;                     // RequestTx Hash
 
         public UInt256 Hash => new UInt256(Crypto.Hash256(this.GetHashData()));
 
@@ -43,7 +41,7 @@ namespace Neo.Network.P2P.Payloads
         {
             OraclePub = reader.ReadSerializable<ECPoint>();
             RequestTxHash = reader.ReadSerializable<UInt256>();
-            Signature = reader.ReadFixedBytes(64);
+            ResponseTxSignature = reader.ReadFixedBytes(64);
         }
 
         public virtual void Serialize(BinaryWriter writer)
@@ -56,7 +54,7 @@ namespace Neo.Network.P2P.Payloads
         {
             writer.Write(OraclePub);
             writer.Write(RequestTxHash);
-            writer.Write(Signature);
+            writer.Write(ResponseTxSignature);
         }
 
         UInt160[] IVerifiable.GetScriptHashesForVerifying(StoreView snapshot)
@@ -67,8 +65,7 @@ namespace Neo.Network.P2P.Payloads
         public bool Verify(StoreView snapshot)
         {
             ECPoint[] validators = NativeContract.Oracle.GetOracleValidators(snapshot);
-            if (!validators.Any(u => u.Equals(OraclePub)))
-                return false;
+            if (!validators.Any(u => u.Equals(OraclePub))) return false;
             return this.VerifyWitnesses(snapshot, MaxWitnessGas);
         }
     }
