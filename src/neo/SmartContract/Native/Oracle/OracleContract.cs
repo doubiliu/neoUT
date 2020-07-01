@@ -110,7 +110,7 @@ namespace Neo.SmartContract.Native
         }
 
         [ContractMethod(0_01000000, CallFlags.All)]
-        public bool Request(ApplicationEngine engine, string url, string filterPath, string callBackMethod, long oracleFee)
+        public bool Request(ApplicationEngine engine, string url, string filterPath, string callbackMethod, long oracleFee)
         {
             Transaction tx = (Transaction)engine.GetScriptContainer();
             var requestKey = CreateRequestKey(tx.Hash);
@@ -133,7 +133,7 @@ namespace Neo.SmartContract.Native
                 Url = url,
                 FilterPath = filterPath,
                 CallBackContract = engine.CallingScriptHash,
-                CallBackMethod = callBackMethod,
+                CallBackMethod = callbackMethod,
                 OracleFee = oracleFee,
                 RequestTxHash = tx.Hash,
                 ValidHeight = engine.GetBlockchainHeight() + GetRequestMaxValidHeight(engine.Snapshot),
@@ -169,14 +169,14 @@ namespace Neo.SmartContract.Native
         }
 
         [ContractMethod(0_01000000, CallFlags.All)]
-        public void CallBack(ApplicationEngine engine)
+        public void Callback(ApplicationEngine engine)
         {
             UInt160 oracleAddress = GetOracleMultiSigAddress(engine.Snapshot);
             if (!engine.CheckWitnessInternal(oracleAddress)) throw new InvalidOperationException();
             Transaction tx = (Transaction)engine.ScriptContainer;
             if (tx is null) throw new InvalidOperationException();
-
-            OracleResponseAttribute response = tx.Attributes.OfType<OracleResponseAttribute>().First();
+            OracleResponseAttribute response = tx.Attributes.OfType<OracleResponseAttribute>().FirstOrDefault();
+            if (response is null) throw new InvalidOperationException();
             StorageKey requestKey = CreateRequestKey(response.RequestTxHash);
             OracleRequest request = engine.Snapshot.Storages.GetAndChange(requestKey)?.GetInteroperable<OracleRequest>();
             if (request is null || request.Status != RequestStatusType.Ready) throw new InvalidOperationException();
@@ -197,8 +197,9 @@ namespace Neo.SmartContract.Native
                 if (Response(engine, tx.Hash, response))
                 {
                     UInt160[] oracleNodes = GetOracleValidators(engine.Snapshot).Select(p => Contract.CreateSignatureContract(p).ScriptHash).ToArray();
+                    long nodeReward = (response.FilterCost + GetRequestBaseFee(engine.Snapshot)) / oracleNodes.Length;
                     foreach (UInt160 account in oracleNodes)
-                        NativeContract.GAS.Mint(engine, account, (response.FilterCost + GetRequestBaseFee(engine.Snapshot)) / oracleNodes.Length);
+                        NativeContract.GAS.Mint(engine, account, nodeReward);
 
                     OracleRequest request = engine.Snapshot.Storages.TryGet(CreateRequestKey(response.RequestTxHash))?.GetInteroperable<OracleRequest>();
                     long refund = request.OracleFee - response.FilterCost - GetRequestBaseFee(engine.Snapshot) - tx.NetworkFee - tx.SystemFee;
