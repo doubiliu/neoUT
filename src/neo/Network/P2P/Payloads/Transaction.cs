@@ -297,7 +297,6 @@ namespace Neo.Network.P2P.Payloads
             {
                 if (Sender != NativeContract.Oracle.GetOracleMultiSigAddress(snapshot))
                     return VerifyResult.Invalid;
-                
                 var request = NativeContract.Oracle.GetRequest(snapshot, oracleResponse.RequestTxHash);
                 if (request is null || request.Status != RequestStatusType.Request)
                     return VerifyResult.Invalid;
