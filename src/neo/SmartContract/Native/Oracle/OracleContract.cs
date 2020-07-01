@@ -49,8 +49,9 @@ namespace Neo.SmartContract.Native
         }
 
         [ContractMethod(0_01000000, CallFlags.AllowStates)]
-        public bool SetOracleValidators(ApplicationEngine engine, ECPoint[] validators)
+        public bool SetOracleValidators(ApplicationEngine engine, byte[] data)
         {
+            ECPoint[] validators = data.AsSerializableArray<ECPoint>();
             UInt160 committeeAddress = NEO.GetCommitteeAddress(engine.Snapshot);
             if (!engine.CheckWitnessInternal(committeeAddress)) return false;
             StorageKey key = CreateStorageKey(Prefix_Validator);

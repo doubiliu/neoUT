@@ -13,6 +13,7 @@ using Neo.VM.Types;
 using Neo.Wallets;
 using System;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using static Neo.UnitTests.Extensions.Nep5NativeContractExtensions;
 
@@ -61,10 +62,10 @@ namespace Neo.UnitTests.SmartContract.Native
 
             // Init
             var engine = new ApplicationEngine(TriggerType.Application, null, snapshot, 0, true);
-            var from = NativeContract.Oracle.GetOracleMultiSigAddress(snapshot);
+            var from = NativeContract.NEO.GetCommitteeAddress(engine.Snapshot);
             long value = 12345;
 
-            // Set 
+            // Set
             var script = new ScriptBuilder();
             script.EmitAppCall(NativeContract.Oracle.Hash, "setRequestBaseFee", value);
             engine = new ApplicationEngine(TriggerType.Application, new ManualWitness(from), snapshot, 0, true);
@@ -131,7 +132,7 @@ namespace Neo.UnitTests.SmartContract.Native
 
             // Init
             var engine = new ApplicationEngine(TriggerType.Application, null, snapshot, 0, true);
-            var from = NativeContract.Oracle.GetOracleMultiSigAddress(snapshot);
+            var from = NativeContract.NEO.GetCommitteeAddress(snapshot);
             uint value = 123;
 
             // Set 
@@ -173,9 +174,16 @@ namespace Neo.UnitTests.SmartContract.Native
         {
             var snapshot = Blockchain.Singleton.GetSnapshot();
 
+            var from = NativeContract.NEO.GetCommitteeAddress(snapshot);
+            Neo.Cryptography.ECC.ECPoint[] defaultNodes = NativeContract.NEO.GetCommittee(snapshot);
             var script = new ScriptBuilder();
+            script.EmitAppCall(NativeContract.Oracle.Hash, "setOracleValidators", defaultNodes.ToByteArray());
+            var engine = new ApplicationEngine(TriggerType.Application, new ManualWitness(from), snapshot, 0, true);
+            engine.LoadScript(script.ToArray());
+            engine.Execute();
+            script = new ScriptBuilder();
             script.EmitAppCall(NativeContract.Oracle.Hash, "getOracleValidators");
-            var engine = new ApplicationEngine(TriggerType.Application, null, snapshot, 0, true);
+            engine = new ApplicationEngine(TriggerType.Application, null, snapshot, 0, true);
             engine.LoadScript(script.ToArray());
 
             engine.Execute().Should().Be(VMState.HALT);
@@ -201,6 +209,14 @@ namespace Neo.UnitTests.SmartContract.Native
 
         internal static (bool State, StackItem Result) Check_Request(StoreView snapshot, OracleRequest request, out UInt256 requestTxHash, out Transaction tx)
         {
+            var from = NativeContract.NEO.GetCommitteeAddress(snapshot);
+            Neo.Cryptography.ECC.ECPoint[] defaultNodes = NativeContract.NEO.GetCommittee(snapshot);
+            var script = new ScriptBuilder();
+            script.EmitAppCall(NativeContract.Oracle.Hash, "setOracleValidators", defaultNodes.ToByteArray());
+            var engine = new ApplicationEngine(TriggerType.Application, new ManualWitness(from), snapshot, 0, true);
+            engine.LoadScript(script.ToArray());
+            engine.Execute();
+
             snapshot.PersistingBlock = new Block() { Index = 1000 };
             byte[] privateKey = new byte[32];
             using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
@@ -210,7 +226,7 @@ namespace Neo.UnitTests.SmartContract.Native
             KeyPair keyPair = new KeyPair(privateKey);
             UInt160 account = Contract.CreateSignatureRedeemScript(keyPair.PublicKey).ToScriptHash();
 
-            var script = new ScriptBuilder();
+            script = new ScriptBuilder();
             script.EmitAppCall(NativeContract.Oracle.Hash,
                 "request",
                 request.Url,
@@ -285,7 +301,7 @@ namespace Neo.UnitTests.SmartContract.Native
             byte[] sig = data.Verifiable.Sign(keyPair);
             tx.Witnesses[0].InvocationScript = sig;
             requestTxHash = tx.Hash;
-            ApplicationEngine engine = ApplicationEngine.Run(builder.ToArray(), snapshot, tx, null, 0, true);
+            engine = ApplicationEngine.Run(builder.ToArray(), snapshot, tx, null, 0, true);
             if (engine.State == VMState.FAULT)
             {
                 return (false, false);
@@ -300,12 +316,11 @@ namespace Neo.UnitTests.SmartContract.Native
         public void Check_CallBack()
         {
             var snapshot = Blockchain.Singleton.GetSnapshot();
-
             var request = new OracleRequest()
             {
                 Url = "https://www.baidu.com/",
                 FilterPath = "dotest",
-                CallBackMethod = "back",
+                CallbackMethod = "back",
                 OracleFee = 1000L
             };
             var ret_Request = Check_Request(snapshot, request, out UInt256 requestTxHash, out Transaction tx);
@@ -322,7 +337,7 @@ namespace Neo.UnitTests.SmartContract.Native
 
             OracleResponseAttribute response = new OracleResponseAttribute();
             response.RequestTxHash = requestTxHash;
-            response.Result = keyPair.PublicKey.ToArray();
+            response.Data = keyPair.PublicKey.ToArray();
             response.FilterCost = 0;
             Transaction responsetx = CreateResponseTransaction(snapshot, response);
             Console.WriteLine(responsetx.SystemFee);
@@ -364,7 +379,7 @@ namespace Neo.UnitTests.SmartContract.Native
             if (engine.Execute() != VMState.HALT) throw new InvalidOperationException();
 
             var sb2 = new ScriptBuilder();
-            sb2.EmitAppCall(NativeContract.Oracle.Hash, "callBack");
+            sb2.EmitAppCall(NativeContract.Oracle.Hash, "callback");
 
             var state = new TransactionState
             {
