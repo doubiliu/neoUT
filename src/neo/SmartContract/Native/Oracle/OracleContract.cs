@@ -29,7 +29,7 @@ namespace Neo.SmartContract.Native
 
         public OracleContract()
         {
-            Manifest.Features = ContractFeatures.HasStorage;
+            Manifest.Features = ContractFeatures.HasStorage | ContractFeatures.Payable;
             var events = new List<ContractEventDescriptor>(Manifest.Abi.Events)
             {
                 new ContractEventDescriptor()
@@ -49,21 +49,20 @@ namespace Neo.SmartContract.Native
         }
 
         [ContractMethod(0_01000000, CallFlags.AllowStates)]
+        public bool Verify(ApplicationEngine engine)
+        {
+            UInt160 oracleAddress = GetOracleMultiSigAddress(engine.Snapshot);
+            return engine.CheckWitnessInternal(oracleAddress);
+        }
+
+        [ContractMethod(0_01000000, CallFlags.AllowStates)]
         public bool SetOracleValidators(ApplicationEngine engine, byte[] data)
         {
             ECPoint[] validators = data.AsSerializableArray<ECPoint>();
             UInt160 committeeAddress = NEO.GetCommitteeAddress(engine.Snapshot);
-            if (!engine.CheckWitnessInternal(committeeAddress)) return false;
-            if (validators is null || validators.Length == 0) return false;
-
-            UInt160 oldOracleMultiAddr = GetOracleMultiSigAddress(engine.Snapshot);
+            if (validators.Length == 0 || !engine.CheckWitnessInternal(committeeAddress)) return false;
             var storageItem = engine.Snapshot.Storages.GetAndChange(CreateStorageKey(Prefix_Validator), () => new StorageItem());
             storageItem.Value = validators.ToByteArray();
-
-            UInt160 newOracleMultiAddr = GetOracleMultiSigAddress(engine.Snapshot);
-            var balance = GAS.BalanceOf(engine.Snapshot, oldOracleMultiAddr);
-            GAS.Mint(engine, oldOracleMultiAddr, balance);
-            GAS.Burn(engine, newOracleMultiAddr, balance);
             return true;
         }
 
@@ -133,9 +132,7 @@ namespace Neo.SmartContract.Native
             // ResponseTxFee = ResponseTx.NetwrokFee + ResponseTx.SystemFee
 
             engine.AddGas(oracleFee);
-
-            UInt160 oracleAddress = GetOracleMultiSigAddress(engine.Snapshot);
-            GAS.Mint(engine, oracleAddress, oracleFee - GetRequestBaseFee(engine.Snapshot)); // pay response tx
+            GAS.Mint(engine, Hash, oracleFee - GetRequestBaseFee(engine.Snapshot)); // pay response tx
 
             OracleRequest request = new OracleRequest()
             {
@@ -214,7 +211,7 @@ namespace Neo.SmartContract.Native
                     long refund = request.OracleFee - response.FilterCost - GetRequestBaseFee(engine.Snapshot) - tx.NetworkFee - tx.SystemFee;
                     Transaction requestTx = engine.Snapshot.Transactions.TryGet(request.RequestTxHash).Transaction;
                     GAS.Mint(engine, requestTx.Sender, refund);
-                    GAS.Burn(engine, tx.Sender, refund + response.FilterCost);
+                    GAS.Burn(engine, Hash, refund + response.FilterCost);
                 }
             }
         }
