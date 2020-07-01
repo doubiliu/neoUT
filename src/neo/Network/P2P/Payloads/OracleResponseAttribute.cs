@@ -8,11 +8,9 @@ namespace Neo.Network.P2P.Payloads
 {
     public class OracleResponseAttribute : TransactionAttribute, IInteroperable
     {
-        public UInt256 RequestTxHash { get; set; }
-
-        public byte[] Result { get; set; }
-
-        public long FilterCost { get; set; }
+        public UInt256 RequestTxHash;
+        public byte[] Result;
+        public long FilterCost;
 
         public override int Size => base.Size + UInt256.Length + sizeof(long) + Result.GetVarSize();
 

@@ -7,6 +7,15 @@ namespace Neo.SmartContract.Native.Tokens
 {
     public class OracleRequest : IInteroperable, ISerializable
     {
+        public UInt256 RequestTxHash;
+        public string FilterPath;
+        public UInt160 CallBackContract;
+        public string CallBackMethod;
+        public uint ValidHeight;
+        public long OracleFee;
+        public string Url;
+        public RequestStatusType Status;
+
         public virtual int Size =>
             UInt256.Length +              // RequestTxHash
             FilterPath.GetVarSize() +     // FilterPath
@@ -16,22 +25,6 @@ namespace Neo.SmartContract.Native.Tokens
             sizeof(long) +                // OracleFee
             Url.GetVarSize() +            // Url
             sizeof(byte);                 // Status
-
-        public UInt256 RequestTxHash;
-
-        public string FilterPath;
-
-        public UInt160 CallBackContract;
-
-        public string CallBackMethod;
-
-        public uint ValidHeight;
-
-        public long OracleFee;
-
-        public string Url;
-
-        public RequestStatusType Status;
 
         public virtual void Serialize(BinaryWriter writer)
         {
