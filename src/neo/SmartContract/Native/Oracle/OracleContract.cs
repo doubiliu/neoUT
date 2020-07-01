@@ -132,8 +132,8 @@ namespace Neo.SmartContract.Native
             {
                 Url = url,
                 FilterPath = filterPath,
-                CallBackContract = engine.CallingScriptHash,
-                CallBackMethod = callbackMethod,
+                CallbackContract = engine.CallingScriptHash,
+                CallbackMethod = callbackMethod,
                 OracleFee = oracleFee,
                 RequestTxHash = tx.Hash,
                 ValidHeight = engine.GetBlockchainHeight() + GetRequestMaxValidHeight(engine.Snapshot),
@@ -184,7 +184,7 @@ namespace Neo.SmartContract.Native
             engine.CallFromNativeContract(() =>
             {
                 request.Status = RequestStatusType.Successed;
-            }, request.CallBackContract, request.CallBackMethod, response.Result);
+            }, request.CallbackContract, request.CallbackMethod, response.Data);
         }
 
         protected override void OnPersist(ApplicationEngine engine)

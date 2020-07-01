@@ -9,10 +9,14 @@ namespace Neo.Network.P2P.Payloads
     public class OracleResponseAttribute : TransactionAttribute, IInteroperable
     {
         public UInt256 RequestTxHash;
-        public byte[] Result;
         public long FilterCost;
+        public byte[] Data;
 
-        public override int Size => base.Size + UInt256.Length + sizeof(long) + Result.GetVarSize();
+        public override int Size =>
+            base.Size +                                 // base size
+            UInt256.Length +                            // Request tx hash
+            sizeof(long) +                              // Filter cost
+            (Data is null ? 1 : Data.GetVarSize());     // Data
 
         public override TransactionAttributeType Type => TransactionAttributeType.OracleResponse;
 
@@ -21,17 +25,17 @@ namespace Neo.Network.P2P.Payloads
         protected override void DeserializeWithoutType(BinaryReader reader)
         {
             RequestTxHash = new UInt256(reader.ReadBytes(UInt256.Length));
-            Result = reader.ReadByte() == 0x01 ? reader.ReadVarBytes(ushort.MaxValue) : null;
+            Data = reader.ReadByte() == 0x01 ? reader.ReadVarBytes(ushort.MaxValue) : null;
             FilterCost = reader.ReadInt64();
         }
 
         protected override void SerializeWithoutType(BinaryWriter writer)
         {
             writer.Write(RequestTxHash);
-            if (Result != null)
+            if (Data != null)
             {
                 writer.Write((byte)0x01);
-                writer.WriteVarBytes(Result);
+                writer.WriteVarBytes(Data);
             }
             else
             {
@@ -47,7 +51,7 @@ namespace Neo.Network.P2P.Payloads
             return new Struct(referenceCounter)
             {
                 RequestTxHash.ToArray(),
-                Result,
+                Data,
                 FilterCost
             };
         }
