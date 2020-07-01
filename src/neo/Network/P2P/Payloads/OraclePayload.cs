@@ -22,7 +22,7 @@ namespace Neo.Network.P2P.Payloads
 
         public int Size =>
             ResponseTxSignature.GetVarSize() +  // Oracle Response Transaction Signature
-            OraclePub.Size +                    // Oracle Public key
+            OraclePub.Size +                    // Oracle Node Public key
             Witnesses.GetVarSize() +            // Witnesses
             UInt256.Length;                     // RequestTx Hash
 
@@ -65,8 +65,7 @@ namespace Neo.Network.P2P.Payloads
         public bool Verify(StoreView snapshot)
         {
             ECPoint[] validators = NativeContract.Oracle.GetOracleValidators(snapshot);
-            if (!validators.Any(u => u.Equals(OraclePub)))
-                return false;
+            if (!validators.Any(u => u.Equals(OraclePub))) return false;
             return this.VerifyWitnesses(snapshot, MaxWitnessGas);
         }
     }

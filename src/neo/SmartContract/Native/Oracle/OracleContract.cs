@@ -140,7 +140,6 @@ namespace Neo.SmartContract.Native
                 Status = RequestStatusType.Request
             };
             engine.Snapshot.Storages.Add(requestKey, new StorageItem(request));
-
             engine.SendNotification(Hash, "Request", new Array() { StackItem.FromInterface(request) });
             return true;
         }
