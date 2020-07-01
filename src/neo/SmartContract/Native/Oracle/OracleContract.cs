@@ -59,6 +59,7 @@ namespace Neo.SmartContract.Native
             UInt160 oldOracleMultiAddr = GetOracleMultiSigAddress(engine.Snapshot);
             var storageItem = engine.Snapshot.Storages.GetAndChange(CreateStorageKey(Prefix_Validator), () => new StorageItem());
             storageItem.Value = validators.ToByteArray();
+
             UInt160 newOracleMultiAddr = GetOracleMultiSigAddress(engine.Snapshot);
             var balance = GAS.BalanceOf(engine.Snapshot, oldOracleMultiAddr);
             GAS.Mint(engine, oldOracleMultiAddr, balance);
