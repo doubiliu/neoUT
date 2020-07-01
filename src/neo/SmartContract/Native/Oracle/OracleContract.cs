@@ -53,8 +53,15 @@ namespace Neo.SmartContract.Native
         {
             UInt160 committeeAddress = NEO.GetCommitteeAddress(engine.Snapshot);
             if (!engine.CheckWitnessInternal(committeeAddress)) return false;
-            StorageKey key = CreateStorageKey(Prefix_Validator);
-            engine.Snapshot.Storages.GetAndChange(key, () => new StorageItem() { Value = validators.ToByteArray() });
+            if (validators is null || validators.Length == 0) return false;
+
+            UInt160 oldOracleMultiAddr = GetOracleMultiSigAddress(engine.Snapshot);
+            var storageItem = engine.Snapshot.Storages.GetAndChange(CreateStorageKey(Prefix_Validator), () => new StorageItem());
+            storageItem.Value = validators.ToByteArray();
+            UInt160 newOracleMultiAddr = GetOracleMultiSigAddress(engine.Snapshot);
+            var balance = GAS.BalanceOf(engine.Snapshot, oldOracleMultiAddr);
+            GAS.Mint(engine, oldOracleMultiAddr, balance);
+            GAS.Burn(engine, newOracleMultiAddr, balance);
             return true;
         }
 

@@ -13,7 +13,7 @@ namespace Neo.Network.P2P.Payloads
         public byte[] Data;
 
         public override int Size =>
-            base.Size +                                 // base size
+            base.Size +                                 // Base size
             UInt256.Length +                            // Request tx hash
             sizeof(long) +                              // Filter cost
             (Data is null ? 1 : Data.GetVarSize());     // Data
