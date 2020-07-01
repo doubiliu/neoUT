@@ -49,8 +49,9 @@ namespace Neo.SmartContract.Native
         }
 
         [ContractMethod(0_01000000, CallFlags.AllowStates)]
-        public bool SetOracleValidators(ApplicationEngine engine, ECPoint[] validators)
+        public bool SetOracleValidators(ApplicationEngine engine, byte[] data)
         {
+            ECPoint[] validators = data.AsSerializableArray<ECPoint>();
             UInt160 committeeAddress = NEO.GetCommitteeAddress(engine.Snapshot);
             if (!engine.CheckWitnessInternal(committeeAddress)) return false;
             if (validators is null || validators.Length == 0) return false;
@@ -123,7 +124,7 @@ namespace Neo.SmartContract.Native
             var requestKey = CreateRequestKey(tx.Hash);
             if (engine.Snapshot.Storages.TryGet(requestKey) != null) throw new ArgumentException("One transaction can only request once");
             if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) throw new ArgumentException("It's not a valid request");
-            if (!SupportedProtocol.Contains(uri.Scheme.ToLowerInvariant())) throw new ArgumentException($"The scheme '{uri.Scheme}' is not allowed"); ;
+            if (!SupportedProtocol.Contains(uri.Scheme.ToLowerInvariant())) throw new ArgumentException($"The scheme '{uri.Scheme}' is not allowed");
             if (oracleFee < GetRequestBaseFee(engine.Snapshot) + ResponseTxMinFee) throw new InvalidOperationException("OracleFee is not enough");
 
             // OracleFee = RequestBaseFee + FilterCost + ResponseTxFee
