@@ -5,6 +5,7 @@ using Neo.Network.P2P.Payloads;
 using Neo.Persistence;
 using Neo.SmartContract.Manifest;
 using Neo.SmartContract.Native.Tokens;
+using Neo.VM.Types;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -38,8 +39,8 @@ namespace Neo.SmartContract.Native
                     {
                         new ContractParameterDefinition()
                         {
-                            Name = "requestTxHash",
-                            Type = ContractParameterType.Hash256
+                            Name = "request",
+                            Type = ContractParameterType.InteropInterface
                         }
                     }
                 }
@@ -128,7 +129,7 @@ namespace Neo.SmartContract.Native
             UInt160 oracleAddress = GetOracleMultiSigAddress(engine.Snapshot);
             NativeContract.GAS.Mint(engine, oracleAddress, oracleFee - GetRequestBaseFee(engine.Snapshot)); // pay response tx
 
-            engine.Snapshot.Storages.Add(requestKey, new StorageItem(new OracleRequest()
+            OracleRequest request = new OracleRequest()
             {
                 Url = url,
                 FilterPath = filterPath,
@@ -138,9 +139,10 @@ namespace Neo.SmartContract.Native
                 RequestTxHash = tx.Hash,
                 ValidHeight = engine.GetBlockchainHeight() + GetRequestMaxValidHeight(engine.Snapshot),
                 Status = RequestStatusType.Request
-            }));
+            };
+            engine.Snapshot.Storages.Add(requestKey, new StorageItem(request));
 
-            engine.SendNotification(Hash, "Request", new Array() { tx.Hash.ToArray() });
+            engine.SendNotification(Hash, "Request", new Array() { StackItem.FromInterface(request) });
             return true;
         }
 
