@@ -116,7 +116,7 @@ namespace Neo.SmartContract.Native
             var requestKey = CreateRequestKey(tx.Hash);
             if (engine.Snapshot.Storages.TryGet(requestKey) != null) throw new ArgumentException("One transaction can only request once");
             if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) throw new ArgumentException("It's not a valid request");
-            if (!SupportedProtocol.Contains(uri.Scheme.ToLowerInvariant())) throw new ArgumentException($"The scheme '{uri.Scheme}' is not allowed"); ;
+            if (!SupportedProtocol.Contains(uri.Scheme.ToLowerInvariant())) throw new ArgumentException($"The scheme '{uri.Scheme}' is not allowed");
             if (oracleFee < GetRequestBaseFee(engine.Snapshot) + ResponseTxMinFee) throw new InvalidOperationException("OracleFee is not enough");
 
             // OracleFee = RequestBaseFee + FilterCost + ResponseTxFee
